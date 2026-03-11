@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <!-- =========================
+      [A] 基本設定：編碼 / RWD / 網頁標題
+    ========================== -->
+    <meta charset="UTF-8">
+
+    <!-- RWD：手機寬度自適應，禁止使用者縮放（LIFF/相機頁常見） -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>AI 肌膚實驗室 - 絲滑完整豪華版</title>
+
+    <!-- =========================
+      [B] 外部套件載入
+      1) Chart.js：畫雷達圖（膚況雷達圖）
+      2) LIFF SDK：Line LIFF 取得使用者資料/登入
+      3) html2canvas：把 DOM 畫面轉成圖片（儲存報告小卡）
+    ========================== -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <style>
+        /* =========================
+          [C] 全域主題色（CSS 變數）
+          - 方便統一調整配色：金色、玻璃白、狀態色等
+        ========================== */
+        :root {
+          --gold: #d4a373;
+          --shiny-gold: #ffefba;
+          --white-glass: rgba(255, 255, 255, 0.95);
+          --accent: #f5e6d3;
+          --red-status: #ff5252;
+          --orange-status: #ff9800;
+          --green-status: #4caf50;
+        }
+
+        /* =========================
+          [D] 頁面基礎佈局
+          - 置中顯示卡片
+          - overflow hidden：避免背景特效或手機拖動造成畫面亂跑
+          - touch-action: none：禁止系統預設觸控行為（但你下面對 touchmove 又設 passive true）
+        ========================== */
+        body {
+          margin: 0;
+          padding: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+          font-family: sans-serif;
+          background: #faf9f6;
+          overflow: hidden;
+          touch-action: none;
+        }
+        
+        /* =========================
+          [E] 亮粉特效（滑鼠/手指移動會噴亮粉）
+          - .sparkle：每顆亮粉是一個 div
+          - @keyframes glitter：從出現 -> 飛走 -> 消失
+        ========================== */
+        .sparkle {
+          position: fixed;
+          width: 4px;
+          height: 4px;
+          background: linear-gradient(45deg, var(--gold), var(--shiny-gold));
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 10000;
+          box-shadow: 0 0 5px var(--shiny-gold);
+          animation: glitter 1s forwards ease-out;
+        }
+        @keyframes glitter {
+          0%   { transform: scale(0) rotate(0deg); opacity: 1; }
+          20%  { opacity: 1; transform: scale(1.2) rotate(45deg); }
+          100% { transform: translate(var(--mx), var(--my)) scale(0) rotate(360deg); opacity: 0; }
+        }
+
+        /* =========================
+          [F] 主卡片（整個 App 的容器）
+          - 具玻璃擬態風格 + 可滾動
+          - max-height: 85vh 避免超出手機可視範圍
+        ========================== */
+        .card {
+          background: var(--white-glass);
+          border-radius: 30px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+          width: 92%;
+          max-width: 420px;
+          max-height: 85vh;
+          position: relative;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          padding: 30px;
+          box-sizing: border-box;
+          backdrop-filter: blur(15px);
+          z-index: 10;
+          scroll-behavior: smooth;
+        }
+        
+        /* =========================
+          [G] Step 分頁（步驟頁）
+          - .step 預設隱藏
+          - .visible 顯示（但你實際切換是用 switchStep 動態改 display/opacity）
+        ========================== */
+        .step {
+          width: 100%;
+          display: none;
+          opacity: 0;
+          transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .visible {
+          display: block;
+          opacity: 1;
+        }
+        
+        /* =========================
+          [H] 報告內的小卡片（每個區塊 A/B/C/D）
+        ========================== */
+        .report-sub-card {
+          background: white;
+          border-radius: 22px;
+          padding: 20px;
+          margin-bottom: 15px;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.03);
+          border: 1px solid rgba(212, 163, 115, 0.1);
+          transition: transform 0.3s ease;
+          text-align: left;
+        }
+        .report-sub-card:active {
+          transform: scale(0.98);
+        }
+
+        /* =========================
+          [I] 相機 / 照片顯示區
+          - video：相機預覽
+          - img：擷取後照片顯示
+        ========================== */
+        .photo-container {
+          width: 100%;
+          height: 260px;
+          background: #000;
+          border-radius: 25px;
+          overflow: hidden;
+          border: 1px solid var(--gold);
+          margin-bottom: 20px;
+          position: relative;
+        }
+        
+        /* =========================
+          [J] 鏡頭水平翻轉 (Mirror Effect)
+          - 讓「預覽」像自拍鏡（左右鏡像）
+        ========================== */
+        video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transform: scaleX(-1);
+        }
+
+        /* 擷取後的照片顯示（不翻轉，因為你在 canvas 擷取時已經翻了，與預覽一致） */
+        #captured-photo, .captured-photo-sync {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        /* =========================
+          [K] 偵測框（紅框，定位在某個區域）
+          - 目前是寫死的 top/left/width/height
+        ========================== */
+        .detect-box {
+          position: absolute;
+          border: 2px solid #ff5252;
+          background: rgba(255, 82, 82, 0.1);
+          pointer-events: none;
+        }
+
+        /* =========================
+          [L] 按鈕/連結樣式
+        ========================== */
+        .btn-gold {
+          background: var(--gold);
+          color: white;
+          border: none;
+          padding: 15px;
+          border-radius: 18px;
+          cursor: pointer;
+          width: 100%;
+          font-size: 1rem;
+          font-weight: bold;
+          margin-top: 10px;
+          transition: 0.3s;
+        }
+        .btn-detail-link {
+          background: none;
+          border: none;
+          color: var(--gold);
+          font-size: 0.8rem;
+          cursor: pointer;
+          padding: 0;
+          margin-top: 10px;
+          font-weight: bold;
+          text-decoration: underline;
+        }
+        
+        /* =========================
+          [M] Tag / icon 列表
+        ========================== */
+        .tag {
+          display: inline-block;
+          padding: 4px 10px;
+          border-radius: 10px;
+          background: #fdf6ec;
+          font-size: 11px;
+          margin: 2px;
+          color: #b08d57;
+          font-weight: 500;
+        }
+        .icon-item {
+          display: flex;
+          align-items: center;
+          margin-bottom: 12px;
+          font-size: 0.9rem;
+        }
+        .icon-item span {
+          margin-right: 12px;
+          font-size: 1.4rem;
+          flex-shrink: 0;
+        }
+        
+        /* =========================
+          [N] 拍照閃光（全螢幕白閃）
+          - #global-flash 加上 .flash-active 觸發動畫
+        ========================== */
+        #global-flash {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background: white;
+          opacity: 0;
+          pointer-events: none;
+          z-index: 9999;
+        }
+        .flash-active { animation: screenFlash 0.3s ease-out; }
+        @keyframes screenFlash {
+          0% { opacity: 0; }
+          50% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+
+        /* =========================
+          [O] 匯出圖片用容器（隱藏在畫面外）
+          - generateSquareImage() 會抓它做成 1:1 小卡圖片
+        ========================== */
+        #export-container {
+          position: absolute;
+          left: -9999px;
+          width: 600px;
+          height: 600px;
+          background: #fff;
+          padding: 40px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 30px;
+        }
+    </style>
+</head>
+
+<body>
+<!-- =========================
+  [P] 拍照閃光層 + 亮粉容器
+========================== -->
+<div id="global-flash"></div>
+<div id="sparkle-container"></div>
+
+<!-- =========================
+  [Q] 主卡片（所有 step 都在這裡面）
+========================== -->
+<div class="card" id="scroll-box">
+
+    <!-- ========== step 0：歡迎頁 ========== -->
+    <div id="step-0" class="step visible">
+        <h2 style="text-align:center; color: var(--gold); margin-top: 20px; letter-spacing: 2px;">AI 美肌實驗室</h2>
+        <div style="text-align:center; margin: 40px 0;">
+            <!-- 顯示 LINE 使用者名稱（登入後會替換） -->
+            <p id="user-name-display" style="font-size: 1.1rem;">訪客，歡迎回來</p>
+        </div>
+        <button class="btn-gold" onclick="grantAndStart()">開始檢測</button>
+    </div>
+
+    <!-- ========== step 1：相機預覽 + 擷取 ========== -->
+    <div id="step-1" class="step">
+        <h3 style="color: var(--gold); text-align:center;">請對準拍攝</h3>
+        <div class="photo-container">
+            <!-- playsinline：iOS 內嵌播放；muted：避免自動播放限制 -->
+            <video id="video" playsinline muted></video>
+        </div>
+        <button class="btn-gold" onclick="triggerCapture()">📷 擷取影像</button>
+    </div>
+
+    <!-- ========== step 2：補充資訊 ========== -->
+    <div id="step-2" class="step">
+        <h2 style="color: var(--gold); text-align:center;">補充資訊</h2>
+        <div style="margin-top:20px;">
+            <!-- 使用者自填：膚質 -->
+            <label style="font-weight:bold; color:var(--gold); font-size:0.85rem;">膚質類型</label>
+            <select id="user-skin" style="width:100%; padding:14px; border-radius:15px; border:1px solid #eee; margin-top:8px;">
+                <option>混合性</option><option>油性</option><option>乾性</option>
+            </select>
+
+            <!-- 使用者自填：年齡 -->
+            <label style="font-weight:bold; color:var(--gold); font-size:0.85rem; display:block; margin-top:15px;">年齡區間</label>
+            <select id="user-age" style="width:100%; padding:14px; border-radius:15px; border:1px solid #eee; margin-top:8px;">
+                <option>20-30</option><option>31-40</option><option>41+</option>
+            </select>
+        </div>
+
+        <!-- 進入報告頁 -->
+        <button class="btn-gold" onclick="showFinalReport()" style="margin-top:40px;">查看報告</button>
+    </div>
+
+    <!-- ========== step 3：報告總覽 ========== -->
+    <div id="step-3" class="step">
+        <h2 style="text-align: center; color: var(--gold);">AI 分析報告</h2>
+
+        <!-- 顯示擷取照片 -->
+        <div class="photo-container">
+            <img id="captured-photo">
+        </div>
+        
+        <!-- A 區塊：活力指數 -->
+        <div class="report-sub-card" style="background: #fffcf9; display: flex; align-items: center; gap: 15px;">
+            <!-- 圓形儀表（用 conic-gradient 畫進度圈） -->
+            <div style="position: relative; width: 75px; height: 75px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(closest-side, white 79%, transparent 80% 100%), conic-gradient(#f8d2c9 78%, #eee 0); border-radius: 50%;">
+                <div style="text-align: center;">
+                    <div style="font-size: 1.3rem; font-weight: bold;">78</div>
+                    <div style="font-size: 0.45rem; color:#999;">活力指數</div>
+                </div>
+            </div>
+            <div style="flex-grow: 1;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h4 style="margin:0; font-size: 0.9rem;">A. 氣色急救站</h4>
+                    <span class="tag" style="background:#f8d2c9; color:#d84315;">狀態不佳</span>
+                </div>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">💡 急救：保濕面膜、多喝水</p>
+
+                <!-- 進入 A 詳情頁 -->
+                <button class="btn-detail-link" onclick="switchStep('step-3', 'step-a-detail')">查看詳情建議 →</button>
+            </div>
+        </div>
+
+        <!-- B 區塊：雷達圖 -->
+        <div class="report-sub-card">
+            <h4>B. 深度問題偵測</h4>
+            <canvas id="skinChart" style="max-height: 160px; margin: 10px 0;"></canvas>
+            <p style="font-size: 0.85rem;">⚠️ 主要問題：<strong>發炎痘痘 (6.8分)</strong></p>
+            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-b-detail')">分析細節數據 →</button>
+        </div>
+
+        <!-- C 區塊：生活建議 -->
+        <div class="report-sub-card">
+            <h4>C. 生活習慣建議</h4>
+            <div style="margin-top:8px;"><span class="tag">水楊酸</span><span class="tag">維生素 B5</span></div>
+            <p style="font-size:0.75rem; color:#aaa; margin-top:8px;">*注意：A醇類建議夜間使用</p>
+            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-c-detail')">查看生活小秘訣 →</button>
+        </div>
+
+        <!-- D 區塊：選品 -->
+        <div class="report-sub-card">
+            <h4>D. 智慧選品</h4>
+            <div style="border-left: 3px solid var(--gold); padding-left: 10px; margin-top:10px;">
+                <p style="font-weight:bold; font-size:0.9rem;">理膚寶水 Duo+</p>
+                <p style="color:var(--gold); font-weight:bold; font-size: 1.1rem; margin: 5px 0;">匹配度：94%</p>
+            </div>
+            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-d-detail')">查看選品詳情 →</button>
+        </div>
+
+        <!-- 匯出報告小卡（用 html2canvas） -->
+        <button class="btn-gold" style="background: #8eb09b;" onclick="generateSquareImage()">💾 儲存報告小卡</button>
+
+        <!-- 重新整理回到初始 -->
+        <button class="btn-gold" onclick="location.reload()" style="background:#999; margin-top:20px;">重新檢測</button>
+    </div>
+
+    <!-- ========== A 詳情頁 ========== -->
+    <div id="step-a-detail" class="step">
+        <h2 style="text-align:center; color:var(--gold);">氣色急救站</h2>
+        <div class="report-sub-card" style="text-align:center;">
+            <div style="width: 100px; height: 100px; background: #fdf2f2; border-radius: 50%; display: inline-block; border: 2px solid #f8d2c9; padding-top:30px; box-sizing: border-box;">
+                <b>4.2 / 10 ⚠️</b><br><small>今天狀態不佳</small>
+            </div>
+            <p style="margin-top:15px; font-weight:bold; color:#d84315;">好消息：氣色可在 5 分鐘內改善！</p>
+        </div>
+        <div class="report-sub-card">
+            <p><b>Step 1：臉部按摩 (2分鐘)</b></p>
+            <div style="height:80px; background:#f9f9f9; border-radius:12px; line-height:80px; text-align:center; color:#ccc;">示意教學動畫區</div>
+            <p style="margin-top:15px;"><b>Step 2：穴位按壓 (1分鐘)</b></p>
+            <div style="height:80px; background:#f9f9f9; border-radius:12px; line-height:80px; text-align:center; color:#ccc;">示意教學動畫區</div>
+        </div>
+        <button class="btn-gold" onclick="switchStep('step-a-detail', 'step-3')">返回報告總覽</button>
+    </div>
+
+    <!-- ========== B 詳情頁（偵測框 + 同步照片） ========== -->
+    <div id="step-b-detail" class="step">
+        <h2 style="text-align:center; color:var(--gold);">深度問題偵測</h2>
+
+        <!-- captured-photo-sync：與主圖同步顯示同一張擷取照片 -->
+        <div class="photo-container">
+            <img class="captured-photo-sync">
+            <!-- 偵測框：目前是寫死一個區域 -->
+            <div class="detect-box" style="top:20%; left:35%; width:30%; height:25%;"></div>
+        </div>
+
+        <div class="report-sub-card">
+            <div style="border-left:4px solid var(--red-status); padding-left:15px; margin-bottom:15px;">
+                <b>🚨 異常目標 A：發炎痘痘</b>
+                <span style="display:block; font-size:0.8rem; color:#666;">嚴重指數：6.8 (High) / T字部位</span>
+            </div>
+            <div style="border-left:4px solid var(--orange-status); padding-left:15px;">
+                <b>⚠️ 異常目標 B：動態細紋</b>
+                <span style="display:block; font-size:0.8rem; color:#666;">嚴重指數：6.0 (Med) / 眼尾魚尾紋</span>
+            </div>
+        </div>
+        <button class="btn-gold" onclick="switchStep('step-b-detail', 'step-3')">返回報告總覽</button>
+    </div>
+
+    <!-- ========== C 詳情頁 ========== -->
+    <div id="step-c-detail" class="step">
+        <h2 style="text-align:center; color:var(--gold);">生活習慣小秘訣</h2>
+        <div class="report-sub-card">
+            <h4 style="margin:0; color:#444;">為什麼最近氣色較差？</h4>
+            <p style="font-size:0.85rem; color:#666; line-height:1.7; margin-top:10px;">疲勞持續累積時，新陳代謝與修復速度會放慢。身體在提醒您需要更多支持。 </p>
+        </div>
+        <div class="report-sub-card">
+            <h4 style="margin:0; color:#444; margin-bottom:15px;">飲食補充建議</h4>
+            <div class="icon-item"><span>🥦</span> <b>深綠色蔬菜</b></div>
+            <div class="icon-item"><span>🐟</span> <b>Omega-3 食物</b></div>
+            <div class="icon-item"><span>🍊</span> <b>維生素 C 水果</b></div>
+            <div class="icon-item"><span>🥜</span> <b>堅果與全穀類</b></div>
+        </div>
+        <button class="btn-gold" onclick="switchStep('step-c-detail', 'step-3')">返回報告總覽</button>
+    </div>
+
+    <!-- ========== D 詳情頁 ========== -->
+    <div id="step-d-detail" class="step">
+        <h2 style="text-align:center; color:var(--gold);">智慧選品詳情</h2>
+        <div class="report-sub-card">
+            <p>針對您的膚況，推薦使用 <b>理膚寶水 Duo+</b>。含水楊酸與專利成分，有效改善粉刺與紅腫問題。</p>
+        </div>
+        <button class="btn-gold" onclick="switchStep('step-d-detail', 'step-3')">返回報告總覽</button>
+    </div>
+</div>
+
+<!-- =========================
+  [R] 匯出用 DOM（畫面外）
+  - 左：照片（export-photo）
+  - 右：標題 + 雷達圖（exportChart）
+========================== -->
+<div id="export-container">
+    <div style="border-radius: 20px; overflow: hidden;">
+        <img id="export-photo" style="width:100%; height:100%; object-fit:cover;">
+    </div>
+    <div style="padding: 30px; display: flex; flex-direction: column; justify-content: center;">
+        <h2 style="color:var(--gold); margin:0; font-weight:300;">SKIN ANALYSIS</h2>
+        <canvas id="exportChart" width="250" height="250"></canvas>
+    </div>
+</div>
+
+<script>
+    /* =========================
+      [S] DOM 取得：之後會一直用到的元素
+    ========================== */
+    const video = document.getElementById('video');                  // 相機預覽 video
+    const photoMain = document.getElementById('captured-photo');     // 報告總覽的照片
+    const syncPhotos = document.querySelectorAll('.captured-photo-sync'); // 詳情頁同步照片
+    const scrollBox = document.getElementById('scroll-box');         // 卡片容器（切頁時滾動回頂）
+    let userName = "訪客";
+
+    /* =========================
+      [T] LIFF 初始化：抓 LINE 使用者名稱顯示在 step-0
+      - liff.init：啟動 LIFF
+      - liff.isLoggedIn：是否已登入
+      - liff.getProfile：拿 displayName
+    ========================== */
+    liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
+        if (liff.isLoggedIn()) {
+            liff.getProfile().then(p => {
+                userName = p.displayName;
+                document.getElementById('user-name-display').innerText = userName + "，歡迎回來";
+            });
+        }
+    });
+
+    /* =========================
+      [U] 亮粉特效：建立一顆 sparkle，1 秒後移除
+    ========================== */
+    const createSparkle = (x, y) => {
+        const s = document.createElement('div');
+        s.className = 'sparkle';
+
+        // 隨機大小
+        const size = Math.random() * 4 + 2;
+        s.style.width = size + 'px';
+        s.style.height = size + 'px';
+
+        // 出現位置（滑鼠/手指所在）
+        s.style.left = x + 'px';
+        s.style.top = y + 'px';
+
+        // 隨機飛行方向（用 CSS 變數讓 keyframes 取用）
+        s.style.setProperty('--mx', (Math.random() - 0.5) * 150 + 'px');
+        s.style.setProperty('--my', (Math.random() - 0.5) * 150 + 'px');
+
+        document.getElementById('sparkle-container').appendChild(s);
+        setTimeout(() => s.remove(), 1000);
+    };
+
+    // 桌機滑鼠移動 -> 噴亮粉
+    document.addEventListener('mousemove', e => createSparkle(e.clientX, e.clientY));
+
+    // 手機手指滑動 -> 噴亮粉（passive: true 讓滾動更順）
+    document.addEventListener('touchmove', e => createSparkle(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+
+    /* =========================
+      [V] 開相機 + 進入 step-1
+      - getUserMedia：要求前鏡頭（facingMode: "user"）
+      - 成功：video 播放
+      - 失敗：提示開啟相機權限
+    ========================== */
+    async function grantAndStart() {
+        try { 
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "user" }
+            });
+
+            video.srcObject = stream;
+            video.play();
+            switchStep('step-0', 'step-1');
+        } catch (e) {
+            alert("請開啟相機");
+        }
+    }
+
+    /* =========================
+      [W] 擷取影像（拍照）
+      1) 先做白閃 flash
+      2) 用 canvas 把 video 畫上去
+      3) 為了「與鏡像預覽一致」：canvas 先 translate + scale(-1, 1) 翻轉後再畫
+      4) 轉成 base64 png，放到報告圖與同步圖
+      5) 停止相機 stream（節省資源）
+      6) 切換到 step-2
+    ========================== */
+    function triggerCapture() {
+        // 開啟白閃動畫
+        document.getElementById('global-flash').classList.add('flash-active');
+
+        // 建立 canvas（解析度用 video 原始解析度）
+        const c = document.createElement('canvas');
+        c.width = video.videoWidth;
+        c.height = video.videoHeight;
+
+        const ctx = c.getContext('2d');
+
+        // ✅ 翻轉繪圖，確保拍照結果與鏡像預覽一致
+        ctx.translate(c.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, c.width, c.height);
+
+        // 轉成圖片 base64
+        const data = c.toDataURL('image/png');
+
+        // 塞到主報告圖 + 其他同步圖
+        photoMain.src = data;
+        syncPhotos.forEach(p => p.src = data);
+
+        // 0.3 秒後：關 flash、切頁、關相機
+        setTimeout(() => {
+            document.getElementById('global-flash').classList.remove('flash-active');
+            switchStep('step-1', 'step-2');
+
+            // 停止攝影機
+            if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+        }, 300);
+    }
+
+    /* =========================
+      [X] 顯示報告頁 step-3
+      - 延遲 600ms 再畫圖：讓 step-3 顯示完成、canvas 有尺寸再畫 Chart
+    ========================== */
+    function showFinalReport() {
+        switchStep('step-2', 'step-3');
+        setTimeout(initCharts, 600);
+    }
+
+    /* =========================
+      [Y] 切換 step（自製頁面路由）
+      - out：先淡出 (opacity 0)
+      - 400ms 後：out display none / in display block
+      - scrollBox 滾動回頂
+      - 再淡入 (opacity 1)
+    ========================== */
+    function switchStep(outId, inId) {
+        const outE = document.getElementById(outId);
+        const inE = document.getElementById(inId);
+
+        outE.style.opacity = '0';
+
+        setTimeout(() => {
+            outE.style.display = 'none';
+            inE.style.display = 'block';
+
+            // 每次切換頁面就回到頂端
+            scrollBox.scrollTop = 0;
+
+            // 稍微延遲讓 display 生效後再淡入
+            setTimeout(() => { inE.style.opacity = '1'; }, 50);
+        }, 400);
+    }
+
+    /* =========================
+      [Z] 初始化雷達圖（報告頁 skinChart + 匯出頁 exportChart）
+      - 兩張圖共用同一份 cfg
+    ========================== */
+    function initCharts() {
+        const cfg = {
+            type: 'radar',
+            data: {
+                labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'],
+                datasets: [{
+                    data: [8, 5, 4, 6, 7],
+                    backgroundColor: 'rgba(212, 163, 115, 0.1)',
+                    borderColor: '#d4a373',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: { r: { ticks: { display: false }, min: 0 } }
+            }
+        };
+
+        new Chart(document.getElementById('skinChart'), cfg);
+        new Chart(document.getElementById('exportChart'), cfg);
+    }
+
+    /* =========================
+      [AA] 生成 1:1 報告小卡圖片
+      1) export-photo 使用報告照片
+      2) html2canvas 把 export-container 渲染成 canvas
+      3) 轉成 DataURL 後用 a.click() 觸發下載
+    ========================== */
+    function generateSquareImage() {
+        document.getElementById('export-photo').src = photoMain.src;
+
+        html2canvas(document.getElementById('export-container'), { scale: 2 }).then(cvs => {
+            const link = document.createElement('a');
+            link.download = 'MySkinReport.png';
+            link.href = cvs.toDataURL();
+            link.click();
+        });
+    }
+</script>
+</body>
+</html>

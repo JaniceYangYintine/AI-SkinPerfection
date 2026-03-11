@@ -1,0 +1,3058 @@
+﻿<!doctype html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>AI 氣色 × 膚況顧問</title>
+  <!-- <link rel="stylesheet" href="assets/app.css" /> -->
+
+  <!-- 引入 Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@400;600;900&family=Shippori+Mincho:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap"
+    rel="stylesheet">
+  <style>
+    /* =========================================
+       核心設定 (Core)
+       ========================================= */
+    :root {
+      --transition-speed: 0.4s;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      transition: background-color var(--transition-speed), color var(--transition-speed);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      /* 防止手機橫向滾動 */
+    }
+
+    /* 背景紋理層 */
+    .bg-layer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      pointer-events: none;
+      transition: opacity var(--transition-speed);
+    }
+
+    /* =========================================
+       通用版面 (Layout)
+       ========================================= */
+    header {
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all var(--transition-speed);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-container {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-shape {
+      width: 100%;
+      height: 100%;
+      transition: all var(--transition-speed);
+    }
+
+    .brand-text h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      letter-spacing: 0.05em;
+      transition: color var(--transition-speed);
+    }
+
+    .brand-text p {
+      margin: 4px 0 0 0;
+      font-size: 0.75rem;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .stage {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      position: relative;
+    }
+
+    /* Standard Card adjustments */
+    .card {
+      width: 100%;
+      max-width: 420px;
+      /* Default max-width adjusted */
+      position: relative;
+      transition: all var(--transition-speed);
+      overflow: hidden;
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--transition-speed);
+    }
+
+    .card-head .title {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .card-head .sub {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .tag {
+      padding: 4px 10px;
+      font-size: 0.7rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    .kpi-item .label {
+      font-size: 0.75rem;
+      opacity: 0.6;
+      margin-bottom: 8px;
+    }
+
+    .kpi-item .value {
+      font-size: 1.6rem;
+      font-weight: 500;
+      transition: color var(--transition-speed);
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn {
+      width: auto;
+      min-width: 120px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Toast Notification Style */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      z-index: 999;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* =========================================
+       THEME A: 東京．表參道 (Tokyo Omotesando)
+       使用 class="theme-tokyo" 啟用
+       ========================================= */
+    body.theme-tokyo {
+      --bg-color: #f7f6f2;
+      --text-color: #3e3a39;
+      --card-bg: #ffffff;
+      --accent-color: #a63737;
+      --font-main: 'Shippori Mincho', 'Noto Serif TC', serif;
+      --font-ui: 'Noto Sans TC', sans-serif;
+    }
+
+    body.theme-tokyo {
+      font-family: var(--font-main);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    body.theme-tokyo .bg-layer {
+      /* 和紙紋理 SVG */
+      background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 2.24 5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 2.24 5 5 2.24 5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%239C92AC' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+      opacity: 1;
+    }
+
+    body.theme-tokyo .logo-shape {
+      border: 2px solid var(--accent-color);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.theme-tokyo .logo-shape::after {
+      content: '肌';
+      color: var(--accent-color);
+      font-family: var(--font-main);
+      font-weight: 900;
+      font-size: 24px;
+    }
+
+    body.theme-tokyo .card {
+      background: #fff;
+      border: 1px solid #e6e6e6;
+      border-radius: 2px;
+      padding: 24px;
+      max-width: 380px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+    }
+
+    body.theme-tokyo .card-head {
+      border-bottom: 1px solid #eee;
+    }
+
+    body.theme-tokyo .card-head .title {
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    body.theme-tokyo .kpi-item .value {
+      font-family: var(--font-ui);
+      font-weight: 300;
+      color: var(--text-color);
+    }
+
+    body.theme-tokyo .btn-primary {
+      background: #2b2b2b;
+      color: #fff;
+      border-radius: 2px;
+      font-family: var(--font-ui);
+      letter-spacing: 2px;
+    }
+
+    body.theme-tokyo .btn-primary:hover {
+      background: #4a4a4a;
+    }
+
+    body.theme-tokyo .btn-outline {
+      background: transparent;
+      border: 1px solid #ccc;
+      color: #666;
+      border-radius: 2px;
+    }
+
+    body.theme-tokyo .tag {
+      background: #f0f0f0;
+      color: #333;
+      border-radius: 2px;
+      font-family: var(--font-ui);
+    }
+
+    /* =========================================
+       THEME B: 醫美．實驗室 (Derma Lab Pro)
+       使用 class="theme-lab" 啟用
+       ========================================= */
+    body.theme-lab {
+      --bg-color: #f4f7f9;
+      --text-color: #1e293b;
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --accent-color: #0ea5e9;
+      --secondary-accent: #0284c7;
+      --font-main: 'Noto Sans TC', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    body.theme-lab {
+      font-family: var(--font-main);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    body.theme-lab .bg-layer {
+      /* 科技網格 CSS */
+      background-image:
+        linear-gradient(rgba(14, 165, 233, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14, 165, 233, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 1;
+    }
+
+    body.theme-lab header {
+      background: #fff;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+      margin-bottom: 20px;
+    }
+
+    body.theme-lab .logo-shape {
+      background: var(--accent-color);
+      border-radius: 50%;
+      position: relative;
+      box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+    }
+
+    body.theme-lab .logo-shape::before,
+    body.theme-lab .logo-shape::after {
+      content: '';
+      position: absolute;
+      background: #fff;
+      border-radius: 2px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    body.theme-lab .logo-shape::before {
+      width: 4px;
+      height: 20px;
+    }
+
+    body.theme-lab .logo-shape::after {
+      width: 20px;
+      height: 4px;
+    }
+
+    body.theme-lab .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+      padding: 32px;
+      border: 1px solid rgba(14, 165, 233, 0.1);
+    }
+
+    body.theme-lab .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent-color), #6366f1);
+    }
+
+    body.theme-lab .card-head .title {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    body.theme-lab .card-head .sub {
+      color: #64748b;
+    }
+
+    body.theme-lab .kpi-item .value {
+      font-family: var(--font-mono);
+      color: var(--accent-color);
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    body.theme-lab .kpi-item .label {
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    body.theme-lab .btn {
+      border-radius: 50px;
+      font-weight: 600;
+    }
+
+    body.theme-lab .btn-primary {
+      background: linear-gradient(135deg, var(--accent-color), var(--secondary-accent));
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    }
+
+    body.theme-lab .btn-primary:hover {
+      box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+      transform: translateY(-1px);
+    }
+
+    body.theme-lab .btn-outline {
+      background: transparent;
+      border: 2px solid #e2e8f0;
+      color: #64748b;
+    }
+
+    body.theme-lab .btn-outline:hover {
+      border-color: #cbd5e1;
+      color: #475569;
+    }
+
+    body.theme-lab .tag {
+      background: rgba(14, 165, 233, 0.1);
+      color: var(--accent-color);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    body.theme-lab .tag::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--accent-color);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-color);
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* ===== Survey styles ===== */
+    .q {
+      margin-top: 12px;
+    }
+
+    .q label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .opts {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .opt {
+      flex: 1 1 160px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .62);
+      border: 1px solid rgba(0, 0, 0, .08);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .opt input {
+      margin-right: 8px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    /* ===== Analyze styles ===== */
+    #cameraBox {
+      width: 360px;
+      height: 480px;
+      border-radius: 22px;
+      overflow: hidden;
+      position: relative;
+      background: rgba(0, 0, 0, .25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 0, 0, .08);
+      box-shadow: 0 20px 70px rgba(0, 0, 0, .18);
+    }
+
+    /* video + canvas cover 疊滿 */
+    #video,
+    #meshCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* 鏡像一致 */
+    #video {
+      transform: scaleX(-1);
+    }
+
+    #meshCanvas {
+      transform: scaleX(-1);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .hint {
+      position: absolute;
+      top: 14px;
+      left: 12px;
+      right: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, .26);
+      border: 1px solid rgba(255, 255, 255, .22);
+      color: rgba(255, 255, 255, .92);
+      font-size: 13px;
+      letter-spacing: .6px;
+      text-align: center;
+      z-index: 4;
+    }
+
+    #faceGuide {
+      position: absolute;
+      inset: 74px 44px 98px 44px;
+      border-radius: 999px;
+      border: 2px dashed rgba(255, 255, 255, .65);
+      pointer-events: none;
+      animation: pulse 2.5s infinite ease-in-out;
+      z-index: 3;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: .35;
+        transform: scale(.985)
+      }
+
+      50% {
+        opacity: .85;
+        transform: scale(1)
+      }
+
+      100% {
+        opacity: .35;
+        transform: scale(.985)
+      }
+    }
+
+    #captureBtn {
+      position: absolute;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      width: 76px;
+      height: 76px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .75), rgba(255, 255, 255, 0) 45%),
+        linear-gradient(135deg, rgba(255, 157, 184, .95), rgba(242, 216, 140, .92));
+      border: 6px solid rgba(255, 255, 255, .92);
+      box-shadow: 0 10px 24px rgba(255, 157, 184, .22), 0 26px 60px rgba(0, 0, 0, .25);
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    #cameraBox.loading::after {
+      content: "AI 分析中…";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10, 14, 24, .62);
+      font-size: 18px;
+      letter-spacing: 2px;
+      z-index: 10;
+    }
+
+    #flash {
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s;
+      z-index: 999;
+    }
+
+    @media (max-width: 920px) {
+      #cameraBox {
+        width: min(92vw, 420px);
+        height: min(128vw, 560px);
+      }
+    }
+
+    /* 當對準成功時，導引框變成綠色實線 */
+    #faceGuide.valid {
+      border-color: #00ff00;
+      border-style: solid;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+      animation: none;
+      /* 停止呼吸燈動畫，表示鎖定 */
+      transform: scale(1.05);
+      transition: all 0.3s;
+    }
+
+    /* 拍照按鈕在沒對準時半透明，對準後全亮 */
+    #captureBtn {
+      opacity: 0.5;
+      pointer-events: none;
+      /* 沒對準不給按 */
+      transition: opacity 0.3s;
+    }
+
+    #captureBtn.ready {
+      opacity: 1;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    /* ===== Result styles ===== */
+    html,
+    body {
+      height: 100%;
+      overflow: auto;
+    }
+
+    .page[data-page="result"] .stage {
+      align-items: flex-start;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .62);
+      border: 1px solid rgba(0, 0, 0, .08);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .10);
+      color: rgba(24, 11, 10, .92);
+    }
+
+    body.theme-tokyo .card {
+      background: #fff;
+      border: 1px solid #e6e6e6;
+      border-radius: 2px;
+      padding: 24px;
+      max-width: 380px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+    }
+
+    .panel .h {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .panel .h strong {
+      font-size: 13px;
+      letter-spacing: .8px;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(0, 0, 0, .10);
+      background: rgba(255, 255, 255, .7);
+      white-space: nowrap;
+    }
+
+    .score {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+    }
+
+    .score .num {
+      font-size: 46px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      line-height: 1;
+      background: linear-gradient(135deg, rgba(255, 157, 184, .95), rgba(216, 189, 91, .95));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .score .meta {
+      font-size: 12px;
+      color: rgba(24, 11, 10, .70);
+      line-height: 1.5;
+    }
+
+    .canvasWrap {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, .10);
+      background: rgba(255, 255, 255, .55);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .item {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .70);
+      border: 1px solid rgba(0, 0, 0, .08);
+      color: rgba(24, 11, 10, .90);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(0, 0, 0, .10);
+      background: rgba(255, 255, 255, .85);
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+
+    .mutedText {
+      color: rgba(24, 11, 10, .68);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .barRow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .62);
+      border: 1px solid rgba(0, 0, 0, .08);
+    }
+
+    .barLabel {
+      width: 110px;
+      font-size: 12px;
+      color: rgba(24, 11, 10, .74);
+    }
+
+    .barTrack {
+      flex: 1;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, .10);
+      overflow: hidden;
+    }
+
+    .barFill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(242, 216, 140, .95), rgba(255, 157, 184, .85));
+    }
+
+    .barVal {
+      width: 42px;
+      text-align: right;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    #radarA {
+      width: 450px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    #radarB {
+      width: 450px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .productTitle {
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+
+    .productMeta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(24, 11, 10, .68);
+    }
+
+    .productCard {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 220px;
+      flex: 0 0 220px;
+      scroll-snap-align: start;
+    }
+
+    .productImg {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 0, 0, .08);
+      background: #f3f3f3;
+    }
+
+    .productBody {
+      padding-top: 8px;
+    }
+
+    .productCta {
+      margin-left: auto;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, .12);
+      background: rgba(255, 255, 255, .75);
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      color: rgba(24, 11, 10, .86);
+    }
+
+    .step {
+      display: none;
+      opacity: 0;
+      transition: opacity .35s ease;
+    }
+
+    .step.visible {
+      display: block;
+      opacity: 1;
+    }
+
+    .detailLink {
+      margin-top: 10px;
+      background: none;
+      border: none;
+      color: rgba(24, 11, 10, .78);
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+      transition: transform .15s ease;
+    }
+
+    .detailLink:hover {
+      transform: translateX(2px);
+    }
+
+    .demoBox {
+      height: 80px;
+      border-radius: 12px;
+      background: #f7f7f7;
+      border: 1px dashed rgba(0, 0, 0, .12);
+      line-height: 80px;
+      text-align: center;
+      color: #aaa;
+      font-size: 12px;
+    }
+
+    .detailActions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .abnormalItem {
+      border: 1px solid rgba(0, 0, 0, .08);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, .70);
+      margin-top: 10px;
+    }
+
+    .largeItem {
+      padding: 16px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    #productList {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 6px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 10px;
+    }
+
+    #productListDetail {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 6px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 10px;
+    }
+
+    #productSentinelDetail {
+      flex: 0 0 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .45);
+      border: 1px dashed rgba(0, 0, 0, .14);
+      color: rgba(24, 11, 10, .65);
+      font-size: 12px;
+      user-select: none;
+      min-height: 210px;
+    }
+
+    #productSentinelX {
+      flex: 0 0 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .45);
+      border: 1px dashed rgba(0, 0, 0, .14);
+      color: rgba(24, 11, 10, .65);
+      font-size: 12px;
+      user-select: none;
+      min-height: 210px;
+    }
+
+    @keyframes cardFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: cardFadeIn .35s ease both;
+    }
+
+    #productList::-webkit-scrollbar {
+      height: 10px;
+    }
+
+    #productList::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, .12);
+      border-radius: 999px;
+    }
+
+    #productList::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #productListDetail::-webkit-scrollbar {
+      height: 10px;
+    }
+
+    #productListDetail::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, .12);
+      border-radius: 999px;
+    }
+
+    #productListDetail::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  </style>
+</head>
+
+<!-- 
+  【風格切換開關】
+  目前設定為: theme-lab (醫美風)
+  如果想換成東京風，請將下方 class 改為 "theme-tokyo"
+-->
+
+<body class="theme-lab">
+  <div class="bg-layer"></div>
+  <!-- <div class="bg-glass"></div> -->
+
+  <section class="page active" data-page="home">
+    <header>
+      <div class="brand">
+        <div class="logo-container">
+          <div class="logo-shape"></div>
+        </div>
+        <div class="brand-text">
+          <h1>AI 氣色 × 膚況顧問</h1>
+          <p>首頁 / 入口</p>
+        </div>
+      </div>
+      <!-- <button class="btn" onclick="go('login')">登入</button> -->
+    </header>
+
+    <div class="stage">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="title">開始你的膚況分析</div>
+            <div class="sub">拍照 → 分析 → 圖形結果 + 建議</div>
+          </div>
+          <span class="tag">v1</span>
+        </div>
+        <div class="body">
+          <div class="row" style="align-items:center;">
+            <div class="kpi">
+              <div class="sub">快速</div>
+              <div class="big">3 秒</div>
+            </div>
+            <div class="kpi">
+              <div class="sub">指標</div>
+              <div class="big">6 項</div>
+            </div>
+            <div class="kpi">
+              <div class="sub">輸出</div>
+              <div class="big">建議</div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary btn-lg" id="goAnalyze">開始分析</button>
+            <button class="btn" id="goResult">看上次結果</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" data-page="survey">
+    <header>
+      <div class="brand">
+        <div class="logo-container">
+          <div class="logo-shape"></div>
+        </div>
+        <div class="brand-text">
+          <h1>問卷</h1>
+          <p>先填問卷 → 再拍照 → 合併分析</p>
+        </div>
+      </div>
+      <button class="btn" onclick="go('home')">回首頁</button>
+    </header>
+
+    <div class="stage">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="title">拍照前快速問卷（30 秒）</div>
+            <div class="sub">用來調整分析權重與建議內容</div>
+          </div>
+          <span class="tag">必填</span>
+        </div>
+
+        <div class="body">
+          <form id="surveyForm">
+            <!-- 1. 年齡 -->
+            <div class="q">
+              <label>1) 您的年齡區間？</label>
+              <div class="opts">
+                <label class="opt"><input type="radio" name="age" value="u20" required>20歲以下</label>
+                <label class="opt"><input type="radio" name="age" value="20-30" required>20-30歲</label>
+                <label class="opt"><input type="radio" name="age" value="30-40" required>30-40歲</label>
+                <label class="opt"><input type="radio" name="age" value="40up" required>40歲以上</label>
+              </div>
+            </div>
+
+            <!-- 2. 膚況 -->
+            <div class="q">
+              <label>2) 清潔肌膚後30分鐘，膚況是？</label>
+              <div class="opts">
+                <label class="opt"><input type="radio" name="skinType" value="dry" required>乾性肌膚(全臉乾燥緊繃脫皮)</label>
+                <label class="opt"><input type="radio" name="skinType" value="oily" required>油性肌膚(全臉出油泛油光)</label>
+                <label class="opt"><input type="radio" name="skinType" value="combo" required>混合性肌膚(T字出油兩頰乾)</label>
+                <label class="opt"><input type="radio" name="skinType" value="normal" required>中性肌膚(全臉舒適)</label>
+              </div>
+            </div>
+        </div>
+
+        <!-- 3. 敏感度 -->
+        <div class="q">
+          <label>3) 您對外界刺激或新產品的敏感程度？</label>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="sensitivity" value="high" required>容易泛紅敏感</label>
+            <label class="opt"><input type="radio" name="sensitivity" value="med" required>偶爾會但可接受</label>
+            <label class="opt"><input type="radio" name="sensitivity" value="none" required>幾乎沒有問題</label>
+          </div>
+        </div>
+
+        <!-- 4. 保養節奏 -->
+        <div class="q">
+          <label>4) 您更偏好哪種保養節奏？</label>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="routine" value="full" required>早晚完整一套</label>
+            <label class="opt"><input type="radio" name="routine" value="simple" required>僅早或晚單一步驟</label>
+            <label class="opt"><input type="radio" name="routine" value="random" required>隨性不固定</label>
+          </div>
+        </div>
+
+        <!-- 5. 睡眠時數 -->
+        <div class="q">
+          <label>5) 最近一週的平均睡眠時數？</label>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="sleep" value="u6" required>少於6小時</label>
+            <label class="opt"><input type="radio" name="sleep" value="6-7" required>6-7小時</label>
+            <label class="opt"><input type="radio" name="sleep" value="7-8" required>7-8小時</label>
+            <label class="opt"><input type="radio" name="sleep" value="8up" required>超過8小時</label>
+          </div>
+        </div>
+
+        <!-- 6. 壓力 -->
+        <div class="q">
+          <label>6) 最近覺得壓力大嗎？</label>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="stress" value="none" required>幾乎沒有</label>
+            <label class="opt"><input type="radio" name="stress" value="some" required>偶爾覺得有</label>
+            <label class="opt"><input type="radio" name="stress" value="high" required>經常覺得壓力大</label>
+          </div>
+        </div>
+
+        <!-- 7. 運動 -->
+        <div class="q">
+          <label>7) 一週大約幾天有運動超過30分鐘？</label>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="exercise" value="0" required>0天</label>
+            <label class="opt"><input type="radio" name="exercise" value="1-2" required>1-2天</label>
+            <label class="opt"><input type="radio" name="exercise" value="3-4" required>3-4天</label>
+            <label class="opt"><input type="radio" name="exercise" value="5-7" required>5-7天</label>
+          </div>
+        </div>
+
+        <!-- 8. 油炸頻率 (選填) -->
+        <div class="q">
+          <label>8) 一週油炸重油食物的頻率？（選填）</label>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="foodOil" value="0-1">0-1次</label>
+            <label class="opt"><input type="radio" name="foodOil" value="2-3">2-3次</label>
+            <label class="opt"><input type="radio" name="foodOil" value="4-5">4-5次</label>
+            <label class="opt"><input type="radio" name="foodOil" value="6up">6次以上</label>
+          </div>
+        </div>
+
+        <!-- 9. 蔬果攝取 (選填) -->
+        <div class="q">
+          <label>9) 您每天蔬果攝取量？（選填）</label>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="foodVeg" value="high">很多均衡</label>
+            <label class="opt"><input type="radio" name="foodVeg" value="normal">一般少量</label>
+            <label class="opt"><input type="radio" name="foodVeg" value="low">很少幾乎沒有</label>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn" onclick="go('home')">取消</button>
+          <button type="button" class="btn" onclick="go('analyze')">跳過</button>
+          <button type="submit" class="btn btn-primary">下一步：拍照</button>
+        </div>
+        </form>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <section class="page" data-page="analyze">
+    <header>
+      <div class="brand">
+        <div class="logo-container">
+          <div class="logo-shape"></div>
+        </div>
+        <div class="brand-text">
+          <h1>照相</h1>
+          <p>拍照頁面</p>
+        </div>
+      </div>
+      <button class="btn" onclick="go('home')">回首頁</button>
+    </header>
+
+    <div class="stage">
+      <div id="cameraBox">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="meshCanvas"></canvas>
+        <div class="hint" id="hint">相機啟動中…</div>
+        <div id="faceGuide"></div>
+        <div id="captureBtn" aria-label="拍照" role="button"></div>
+      </div>
+    </div>
+
+    <div id="flash"></div>
+    <canvas id="canvas" style="display:none;"></canvas>
+  </section>
+
+  <section class="page" data-page="result">
+    <header>
+      <div class="brand">
+        <div class="logo-container">
+          <div class="logo-shape"></div>
+        </div>
+        <div class="brand-text">
+          <h1>結果</h1>
+          <p>五角分析 × 氣色 × 膚況 × 建議</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="go('analyze')">再分析</button>
+        <button class="btn" onclick="go('home')">回首頁</button>
+      </div>
+    </header>
+
+    <div class="stage">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="title">AI 分析報告</div>
+            <div class="sub">資料來源：localStorage（沒資料會自動用測試數值）</div>
+          </div>
+        </div>
+
+        <div class="body">
+          <div id="step-3" class="step visible">
+            <div class="grid" id="radarSection">
+              <div class="panel" id="summarySection">
+                <div class="h">
+                  <strong>總覽（Overall）</strong>
+                  <span class="chip" id="qualityChip">--</span>
+                </div>
+
+                <div class="score">
+                  <div class="num" id="overallNum">--</div>
+                  <div class="meta" id="overallMeta">
+                    會根據五角指標 + 氣色 + 膚況推估<br />
+                    建議拍攝：自然光、避免背光、距離 30–40cm
+                  </div>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="h">
+                  <strong>五角雷達（五項核心）</strong>
+                  <span class="chip">0–100</span>
+                </div>
+
+                <div class="canvasWrap">
+                  <canvas id="radar" width="520" height="360"></canvas>
+                </div>
+
+                <div class="mutedText" style="margin-top:10px;">
+                  五角建議：五個指標越平均越好；單項過低代表那項需要優先改善。
+                </div>
+
+                <button class="detailLink" onclick="switchStep('step-3','step-a-detail')">五角雷達分析 詳情 →</button>
+              </div>
+
+              <div class="panel">
+                <div class="h">
+                  <strong>專業摘要</strong>
+                  <span class="chip" id="timestampChip">--</span>
+                </div>
+
+                <div class="list" id="summaryCards"></div>
+
+                <div style="height:30px;"></div>
+                <div class="h">
+                  <strong>風險提醒</strong>
+                  <span class="chip">建議參考</span>
+                </div>
+
+                <div class="list" id="riskList"></div>
+
+                <button class="detailLink" onclick="switchStep('step-3','step-b-detail')">專業 與 風險 摘要建議 →</button>
+              </div>
+            </div>
+
+            <div style="height:12px;"></div>
+
+            <div class="kpi" style="margin-top:12px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div class="sub">指標明細（Bar Chart）</div>
+                <span class="tag">越高越好</span>
+              </div>
+              <div id="bars" style="margin-top:10px; display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+
+            <div style="height:12px;"></div>
+
+            <div class="panel" id="tipsSection">
+              <div class="h">
+                <strong>改善建議（Tips）</strong>
+                <span class="chip" id="tipsCount">0</span>
+              </div>
+              <div class="list" id="tipsList"></div>
+              <button class="detailLink" onclick="switchStep('step-3','step-c-detail')">改善建議 →</button>
+            </div>
+
+            <div style="height:12px;"></div>
+
+            <div class="panel" id="productSection">
+              <div class="h">
+                <strong>商品推薦</strong>
+                <span class="chip" id="productCount">0</span>
+              </div>
+              <div class="list" id="productList"></div>
+              <button class="detailLink" onclick="switchStep('step-3','step-e-detail')">前往商品推薦 →</button>
+            </div>
+          </div>
+
+          <div id="step-a-detail" class="step">
+            <div class="panel">
+              <div class="h">
+                <strong>氣色急救站</strong>
+                <span class="chip">同步顯示</span>
+              </div>
+
+              <div class="item" id="aPhotoBlock" style="display:none;">
+                <div style="font-weight:900; margin-bottom:8px;">本次拍攝照片</div>
+                <img id="aUserPhoto" alt="user photo"
+                  style="width:100%; max-height:320px; object-fit:cover; border-radius:14px; border:1px solid rgba(0,0,0,.10);" />
+                <div class="mutedText" style="margin-top:8px;">
+                  來源：payload.photo 或 localStorage(user_photo)
+                </div>
+              </div>
+
+              <div class="canvasWrap" style="margin-top:12px;">
+                <canvas id="radarA" width="520" height="360"></canvas>
+              </div>
+
+              <div style="text-align:center; margin-top:10px;">
+                <div style="font-size:12px; color: rgba(24,11,10,.65);">總分（Overall）</div>
+                <div style="font-size:34px; font-weight:900;" id="aOverallNum">--</div>
+              </div>
+
+              <div class="item">
+                <div><b>Step 1：臉部按摩 (2分鐘)</b></div>
+                <div class="demoBox">示意教學動畫區（可換成 GIF / MP4）</div>
+              </div>
+
+              <div class="item">
+                <div><b>Step 2：穴位按壓 (1分鐘)</b></div>
+                <div class="demoBox">示意教學動畫區（可換成 GIF / MP4）</div>
+              </div>
+
+              <div class="detailActions">
+                <button class="btn" onclick="switchStep('step-a-detail','step-3')">返回報告總覽</button>
+                <button class="btn" onclick="switchStep('step-a-detail','step-b-detail')">前往改善建議</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="step-b-detail" class="step">
+            <div class="panel">
+              <div class="h">
+                <strong>深度問題偵測</strong>
+              </div>
+
+              <div class="item">
+                <div style="font-weight:900; margin-bottom:8px;">照片預覽</div>
+                <div class="demoBox" style="height:200px;">照片顯示區（之後放後端圖片）</div>
+              </div>
+
+              <div class="canvasWrap" style="margin-top:12px;">
+                <canvas id="radarB" width="520" height="360"></canvas>
+              </div>
+
+              <div class="abnormalItem">
+                <div><b>異常目標 A：發炎痘痘</b></div>
+                <div class="mutedText">嚴重指數：6.8 (High) / T 字部位</div>
+              </div>
+
+              <div class="abnormalItem">
+                <div><b>異常目標 B：動態細紋</b></div>
+                <div class="mutedText">嚴重指數：6.0 (Med) / 眼尾魚尾紋</div>
+              </div>
+
+              <div class="abnormalItem">
+                <div><b>異常目標 C：毛孔粗大</b></div>
+                <div class="mutedText">嚴重指數：5.6 (Med) / 鼻翼兩側</div>
+              </div>
+
+              <div class="abnormalItem">
+                <div><b>異常目標 D：暗沉</b></div>
+                <div class="mutedText">嚴重指數：5.2 (Med) / 額頭與兩頰</div>
+              </div>
+
+              <div class="abnormalItem">
+                <div><b>異常目標 E：泛紅</b></div>
+                <div class="mutedText">嚴重指數：4.8 (Low) / 兩頰區域</div>
+              </div>
+            </div>
+
+            <div class="detailActions">
+              <button class="btn" onclick="switchStep('step-b-detail','step-3')">返回報告總覽</button>
+              <button class="btn" onclick="switchStep('step-b-detail','step-c-detail')">前往改善建議</button>
+            </div>
+          </div>
+
+          <div id="step-c-detail" class="step">
+            <div class="panel">
+              <div class="h">
+                <strong>生活改善建議</strong>
+                <span class="chip">小秘訣</span>
+              </div>
+
+              <div class="item largeItem">
+                <div><b>為什麼最近氣色較差？</b></div>
+                <div class="mutedText">疲勞持續累積時，新陳代謝與修復速度會放慢。身體在提醒您需要更多支持。</div>
+              </div>
+
+              <div class="item largeItem">
+                <div><b>飲食補充建議</b></div>
+                <div class="mutedText">深綠色蔬菜、Omega-3 食物、維生素 C 水果、堅果與全穀類。</div>
+              </div>
+
+              <div class="item largeItem">
+                <div><b>作息調整</b></div>
+                <div class="mutedText">建議固定就寢時間，連續 7 天觀察氣色變化。</div>
+              </div>
+
+              <div class="detailActions">
+                <button class="btn" onclick="switchStep('step-c-detail','step-3')">返回報告總覽</button>
+                <button class="btn" onclick="switchStep('step-c-detail','step-e-detail')">前往商品推薦</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="step-d-detail" class="step">
+            <div class="panel">
+              <div class="h">
+                <strong>智慧選品詳情</strong>
+                <span class="chip">示意</span>
+              </div>
+
+              <div class="item">
+                <div><b>推薦產品</b></div>
+                <div class="mutedText">針對你的弱項指標，推薦保濕／修護／防曬等方向。</div>
+              </div>
+
+              <div class="detailActions">
+                <button class="btn" onclick="switchStep('step-d-detail','step-3')">返回報告總覽</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="step-e-detail" class="step">
+            <div class="panel">
+              <div class="h">
+                <strong>商品推薦</strong>
+                <span class="chip" id="productCount2">0</span>
+              </div>
+
+              <div class="list" id="productListDetail"></div>
+
+              <div class="item">
+                <div><b>智慧選商品</b></div>
+                <div class="mutedText">依你的弱項指標自動挑選推薦清單，後續可接後端排序與個人化。</div>
+              </div>
+
+              <div class="detailActions">
+                <button class="btn" onclick="switchStep('step-e-detail','step-3')">返回報告總覽</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" data-page="login">
+    <header>
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>登入</h1>
+          <p>正式上線會接後端驗證</p>
+        </div>
+      </div>
+      <button class="btn" onclick="go('home')">回首頁</button>
+    </header>
+
+    <div class="stage">
+      <div class="card" style="max-width:520px;">
+        <div class="card-head">
+          <div>
+            <div class="title">帳號登入</div>
+            <div class="sub">開發中：沒後端也能用 mock 登入</div>
+          </div>
+        </div>
+
+        <div class="body">
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <input class="input" id="u" placeholder="帳號" autocomplete="username" />
+            <input class="input" id="p" placeholder="密碼" type="password" autocomplete="current-password" />
+            <button class="btn btn-primary" id="loginBtn">登入</button>
+            <button class="btn" id="logoutBtn">登出</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Inlined app.css -->
+  <style>
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+      --glass-bg: rgba(255, 255, 255, .14);
+      --glass-border: rgba(255, 255, 255, .22);
+
+      --text-dark: rgba(22, 22, 26, .92);
+      --text: rgba(22, 22, 26, .92);
+      --muted: rgba(22, 22, 26, .62);
+
+      --shadow: rgba(0, 0, 0, .18);
+
+      --accent: #ff9db8;
+      /* 粉 */
+      --accent2: #f2d88c;
+      /* 香檳金 */
+
+      --page-max: 1040px;
+      --header-h: 76px;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+
+      overflow-x: hidden;
+      overflow-y: auto;
+
+      background:
+        radial-gradient(1200px 900px at 20% 18%, rgba(255, 182, 193, 0.35), transparent 55%),
+        radial-gradient(900px 700px at 80% 28%, rgba(242, 216, 140, 0.30), transparent 55%),
+        radial-gradient(900px 900px at 50% 90%, rgba(255, 255, 255, 0.85), transparent 60%),
+        linear-gradient(180deg, #ffffff 0%, #f5f6fb 100%);
+    }
+
+    .bg-glass {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .bg-glass::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("assets/background.jpg") center / cover no-repeat;
+      filter: blur(1px) saturate(1.05);
+      opacity: 0.45;
+    }
+
+    .bg-glass::after {
+      content: "";
+      position: absolute;
+      inset: -40px;
+      backdrop-filter: blur(22px) saturate(1.2);
+      -webkit-backdrop-filter: blur(22px) saturate(1.2);
+      background:
+        linear-gradient(180deg,
+          rgba(255, 255, 255, .35),
+          rgba(255, 255, 255, .15));
+      background-image:
+        radial-gradient(rgba(0, 0, 0, .08) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 1;
+    }
+
+    header {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(var(--page-max), calc(100% - 32px));
+      padding: calc(14px + var(--safe-top)) 18px 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      box-sizing: border-box;
+      background: rgba(255, 255, 255, .35);
+      border: 1px solid rgba(0, 0, 0, .06);
+      border-radius: 18px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .10);
+    }
+
+    .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(255, 157, 184, .95), rgba(242, 216, 140, .92));
+      box-shadow: 0 10px 30px var(--shadow);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 1px;
+      font-weight: 800;
+      background: linear-gradient(135deg, rgba(255, 157, 184, .95), rgba(242, 216, 140, .95));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .brand p {
+      margin: 2px 0 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .4px;
+    }
+
+    .stage {
+      position: relative;
+      z-index: 1;
+      padding:
+        calc(var(--header-h) + var(--safe-top) + 18px) 16px calc(24px + var(--safe-bottom)) 16px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .card {
+      width: min(980px, 100%);
+      max-width: var(--page-max);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 22px;
+      box-shadow: 0 20px 70px rgba(0, 0, 0, .18);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 16px 16px 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 1px;
+      font-weight: 900;
+      color: var(--text-dark);
+    }
+
+    .sub {
+      margin: 6px 0 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .4px;
+    }
+
+    .body {
+      padding: 0 16px 16px 16px;
+    }
+
+    .btn {
+      border: 1px solid rgba(0, 0, 0, .10);
+      background: rgba(255, 255, 255, .60);
+      color: rgba(22, 22, 26, .88);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      letter-spacing: .4px;
+      cursor: pointer;
+      transition: transform .15s ease, filter .15s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      filter: brightness(1.03);
+    }
+
+    .btn:active {
+      transform: scale(.98);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(255, 157, 184, .95), rgba(242, 216, 140, .92));
+      border: 1px solid rgba(0, 0, 0, .08);
+      color: rgba(24, 11, 10, 0.92);
+      font-weight: 900;
+    }
+
+    .btn-lg {
+      padding: 14px 90px;
+      font-size: 24px;
+      border-radius: 200px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+
+    .kpi {
+      flex: 1 1 220px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .55);
+      border: 1px solid rgba(0, 0, 0, .08);
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+    }
+
+    .big {
+      font-size: 34px;
+      font-weight: 950;
+      line-height: 1;
+      background: linear-gradient(135deg, rgba(242, 216, 140, .95), rgba(255, 157, 184, .85));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .62);
+      border: 1px solid rgba(0, 0, 0, .10);
+      color: rgba(22, 22, 26, .90);
+      outline: none;
+    }
+
+    .input::placeholder {
+      color: rgba(22, 22, 26, .42);
+    }
+
+    /* .toast style is already in older CSS but overwritten here for completeness */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(16px + var(--safe-bottom));
+      transform: translateX(-50%);
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, .78);
+      border: 1px solid rgba(255, 255, 255, .18);
+      color: rgba(255, 255, 255, .92);
+      font-size: 13px;
+      letter-spacing: .3px;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, .35);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+      z-index: 60;
+      max-width: min(92vw, 540px);
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    @media (max-width: 720px) {
+      header {
+        width: calc(100% - 24px);
+        padding: calc(12px + var(--safe-top)) 14px 10px 14px;
+        border-radius: 16px;
+      }
+
+      .stage {
+        padding-top: calc(var(--header-h) + var(--safe-top) + 12px);
+      }
+
+      .btn-lg {
+        padding: 14px 48px;
+        font-size: 20px;
+      }
+    }
+  </style>
+
+  <script>
+    window.APP_SINGLE = true;
+
+    // --- Inlined app.js ---
+    const AUTH_KEY = "skinapp_auth";
+    const RESULT_KEY = "skinapp_result";
+    const DEV_FORCE_MOCK = true; // Forced to true for local generic execution
+
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      if (!el) return alert(msg);
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 2400);
+    }
+
+    async function safeText(res) {
+      try { return await res.text(); } catch { return ""; }
+    }
+
+    async function safeJsonFetch(url, options = {}, fallback = null) {
+      try {
+        const res = await fetch(url, { cache: "no-store", ...options });
+        const text = await safeText(res);
+        if (text.trim().startsWith("<")) {
+          return { ok: false, status: res.status, isHtml: true, data: fallback, raw: text };
+        }
+        const data = text ? JSON.parse(text) : fallback;
+        return { ok: res.ok, status: res.status, data, raw: text };
+      } catch (err) {
+        return { ok: false, status: 0, error: err, data: fallback, raw: "" };
+      }
+    }
+
+    async function backendAvailable() {
+      if (DEV_FORCE_MOCK) return false;
+      const r = await safeJsonFetch("./api/me.php", {}, null);
+      if (r.ok && r.data && typeof r.data === "object") return true;
+      if (r.isHtml) return false;
+      return false;
+    }
+
+    function isLoggedIn() {
+      return localStorage.getItem(AUTH_KEY) === "1";
+    }
+    function setLoggedIn(v) {
+      localStorage.setItem(AUTH_KEY, v ? "1" : "0");
+    }
+
+    async function requireLogin({ silent = false } = {}) {
+      if (isLoggedIn()) return true;
+      if (await backendAvailable()) {
+        const me = await safeJsonFetch("./api/me.php", {}, { ok: false });
+        if (me.ok && me.data?.ok) {
+          setLoggedIn(true);
+          return true;
+        }
+      }
+      if (!silent) {
+        if (window.APP_SINGLE) {
+          location.hash = "#login";
+        } else {
+          location.href = "login.html";
+        }
+      }
+      return false;
+    }
+
+    async function doLogin(username, password) {
+      if (await backendAvailable()) {
+        const body = new FormData();
+        body.append("username", username);
+        body.append("password", password);
+        const r = await safeJsonFetch("./api/login.php", { method: "POST", body }, { ok: false });
+        if (r.ok && r.data?.ok) {
+          setLoggedIn(true);
+          return { ok: true };
+        }
+        return { ok: false, message: r.data?.message || "登入失敗" };
+      }
+      if (username.trim() && password.trim()) {
+        setLoggedIn(true);
+        return { ok: true, mock: true };
+      }
+      return { ok: false, message: "請輸入帳號密碼" };
+    }
+
+    function logout() {
+      setLoggedIn(false);
+      localStorage.removeItem(RESULT_KEY);
+      if (window.APP_SINGLE) {
+        location.hash = "#home";
+      } else {
+        location.href = "index.html";
+      }
+    }
+
+    function saveResult(payload) {
+      localStorage.setItem(RESULT_KEY, JSON.stringify(payload));
+    }
+    function loadResult() {
+      try {
+        const raw = localStorage.getItem(RESULT_KEY) || localStorage.getItem("result");
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function mockAnalyzePayload() {
+      return {
+        ok: true,
+        overall: 82,
+        photo_url: null,
+        metrics: {
+          glow: 76,
+          oil: 42,
+          redness: 28,
+          pores: 55,
+          spots: 36,
+          wrinkles: 61
+        },
+        tips: [
+          "保濕：晚間加強保濕精華，白天使用含玻尿酸乳液。",
+          "泛紅：避免過熱水洗臉，降低刺激性保養。",
+          "毛孔：每週 1–2 次溫和去角質，注意防曬。"
+        ]
+      };
+    }
+
+    async function analyzePhoto(blob) {
+      if (await backendAvailable()) {
+        const form = new FormData();
+        form.append("photo", blob, "capture.jpg");
+        const res = await fetch("./api/analyze.php", { method: "POST", body: form });
+        const text = await safeText(res);
+        if (text.trim().startsWith("<")) {
+          return { ok: false, message: "後端回傳非 JSON" };
+        }
+        const data = text ? JSON.parse(text) : null;
+        return data || { ok: false, message: "後端無資料" };
+      }
+      await new Promise(r => setTimeout(r, 650));
+      return mockAnalyzePayload();
+    }
+
+    function drawBarChart(canvas, valuesObj) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const entries = Object.entries(valuesObj);
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      const padding = 18;
+      const barGap = 10;
+      const barH = Math.floor((h - padding * 2 - barGap * (entries.length - 1)) / entries.length);
+      const max = 100;
+      ctx.globalAlpha = 0.16;
+      ctx.fillRect(padding, padding, w - padding * 2, h - padding * 2);
+      ctx.globalAlpha = 1;
+      ctx.font = "12px -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif";
+      ctx.textBaseline = "middle";
+      entries.forEach(([k, v], i) => {
+        const y = padding + i * (barH + barGap);
+        const x0 = padding + 110;
+        const trackW = w - padding - x0;
+        ctx.fillStyle = "rgba(255,255,255,.78)";
+        ctx.fillText(k, padding + 6, y + barH / 2);
+        ctx.fillStyle = "rgba(0,0,0,.22)";
+        ctx.fillRect(x0, y, trackW, barH);
+        const bw = Math.max(0, Math.min(trackW, (v / max) * trackW));
+        ctx.fillStyle = "rgba(242, 216, 140, .92)";
+        ctx.fillRect(x0, y, bw, barH);
+        ctx.fillStyle = "rgba(255,255,255,.9)";
+        ctx.fillText(String(v), x0 + trackW + 8, y + barH / 2);
+      });
+    }
+
+    function drawRadar(canvas, valuesObj) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const keys = Object.keys(valuesObj);
+      const vals = keys.map(k => valuesObj[k]);
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const r = Math.min(w, h) * 0.34;
+      ctx.clearRect(0, 0, w, h);
+      ctx.translate(0.5, 0.5);
+      const levels = 5;
+      for (let lv = 1; lv <= levels; lv++) {
+        const rr = (r * lv) / levels;
+        ctx.beginPath();
+        keys.forEach((_, i) => {
+          const ang = (Math.PI * 2 * i) / keys.length - Math.PI / 2;
+          const x = cx + Math.cos(ang) * rr;
+          const y = cy + Math.sin(ang) * rr;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.strokeStyle = "rgba(255,255,255,.18)";
+        ctx.stroke();
+      }
+      ctx.font = "12px -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,.75)";
+      keys.forEach((k, i) => {
+        const ang = (Math.PI * 2 * i) / keys.length - Math.PI / 2;
+        const x = cx + Math.cos(ang) * (r + 18);
+        const y = cy + Math.sin(ang) * (r + 18);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
+        ctx.strokeStyle = "rgba(255,255,255,.14)";
+        ctx.stroke();
+        ctx.fillText(k, x - 18, y);
+      });
+      ctx.beginPath();
+      vals.forEach((v, i) => {
+        const ratio = Math.max(0, Math.min(1, v / 100));
+        const ang = (Math.PI * 2 * i) / keys.length - Math.PI / 2;
+        const x = cx + Math.cos(ang) * (r * ratio);
+        const y = cy + Math.sin(ang) * (r * ratio);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.fillStyle = "rgba(255, 182, 193, .25)";
+      ctx.strokeStyle = "rgba(242, 216, 140, .9)";
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.stroke();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+  </script>
+
+  <!-- Modified Logic to use inlined functions -->
+  <script>
+    document.getElementById("goAnalyze").onclick = () => {
+      location.hash = "#survey";
+    };
+
+    document.getElementById("goResult").onclick = () => {
+      const r = loadResult();
+      if (!r) return toast("目前沒有結果，先去分析一次");
+      location.hash = "#result";
+    };
+
+    const form = document.getElementById("surveyForm");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const survey = {
+        age: fd.get("age"),
+        skinType: fd.get("skinType"),
+        sensitivity: fd.get("sensitivity"),
+        routine: fd.get("routine"),
+        sleep: fd.get("sleep"),
+        stress: fd.get("stress"),
+        exercise: fd.get("exercise"),
+        foodOil: fd.get("foodOil"), // optional
+        foodVeg: fd.get("foodVeg"), // optional
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem("survey", JSON.stringify(survey));
+      toast("問卷已保存，準備拍照…");
+      setTimeout(() => location.hash = "#analyze", 450);
+    });
+
+    const u = document.getElementById("u");
+    const p = document.getElementById("p");
+    document.getElementById("loginBtn").onclick = async () => {
+      const r = await doLogin(u.value, p.value);
+      if (!r.ok) return toast(r.message || "登入失敗");
+      toast(r.mock ? "Mock 登入成功（目前無後端）" : "登入成功");
+      setTimeout(() => location.hash = "#home", 450);
+    };
+
+    document.getElementById("logoutBtn").onclick = () => logout();
+    if (isLoggedIn()) toast("你目前已登入");
+  </script>
+
+  <script type="module">
+    import {
+      FaceLandmarker,
+      FilesetResolver
+    } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+    const toastEl = document.getElementById("toast");
+    function toast(msg) {
+      if (!toastEl) return alert(msg);
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      setTimeout(() => toastEl.classList.remove("show"), 2200);
+    }
+
+    const video = document.getElementById("video");
+    const cameraBox = document.getElementById("cameraBox");
+    const captureBtn = document.getElementById("captureBtn");
+    const canvas = document.getElementById("canvas");
+    const flash = document.getElementById("flash");
+    const meshCanvas = document.getElementById("meshCanvas");
+    const hint = document.getElementById("hint");
+
+    const meshCtx = meshCanvas.getContext("2d", { alpha: true });
+    let surveyRaw = "{}";
+
+    let stream = null;
+    let busy = false;
+
+    let faceLandmarker = null;
+    let running = false;
+    let lastMetrics = null;
+    let overlayBound = false;
+    let analyzeActive = false;
+
+    const SKIP_UPLOAD = true;
+
+    function syncOverlaySize() {
+      const rect = cameraBox.getBoundingClientRect();
+      meshCanvas.width = Math.round(rect.width * devicePixelRatio);
+      meshCanvas.height = Math.round(rect.height * devicePixelRatio);
+      meshCanvas.style.width = rect.width + "px";
+      meshCanvas.style.height = rect.height + "px";
+      meshCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    }
+
+    async function initModel() {
+      const fileset = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+      );
+
+      faceLandmarker = await FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+          delegate: "GPU",
+        },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: true,
+        outputFacialTransformationMatrixes: false,
+      });
+    }
+
+    function packMetrics(result) {
+      const blend = result.faceBlendshapes?.[0]?.categories ?? [];
+      return {
+        ts: Date.now(),
+        blendshapes: blend.map(c => ({ name: c.categoryName, score: c.score })),
+      };
+    }
+
+    function drawEffect(result) {
+      const rect = cameraBox.getBoundingClientRect();
+      meshCtx.clearRect(0, 0, rect.width, rect.height);
+
+      const landmarks = result.faceLandmarks?.[0];
+      if (!landmarks || !video.videoWidth || !video.videoHeight) return;
+
+      const srcW = video.videoWidth;
+      const srcH = video.videoHeight;
+      const dstW = rect.width;
+      const dstH = rect.height;
+      const scale = Math.max(dstW / srcW, dstH / srcH);
+      const offsetX = (dstW - srcW * scale) / 2;
+      const offsetY = (dstH - srcH * scale) / 2;
+
+      const points = new Array(landmarks.length);
+      for (let i = 0; i < landmarks.length; i++) {
+        const lm = landmarks[i];
+        points[i] = {
+          x: lm.x * srcW * scale + offsetX,
+          y: lm.y * srcH * scale + offsetY
+        };
+      }
+
+      const connections = FaceLandmarker.FACE_LANDMARKS_TESSELATION || [];
+      meshCtx.lineWidth = 1;
+      meshCtx.strokeStyle = "rgba(255,255,255,.7)";
+      meshCtx.beginPath();
+      for (const c of connections) {
+        const a = c[0] ?? c.start;
+        const b = c[1] ?? c.end;
+        if (a == null || b == null) continue;
+        const p1 = points[a];
+        const p2 = points[b];
+        if (!p1 || !p2) continue;
+        meshCtx.moveTo(p1.x, p1.y);
+        meshCtx.lineTo(p2.x, p2.y);
+      }
+      meshCtx.stroke();
+    }
+
+    // --- 新增：臉部對位判斷邏輯 ---
+    function checkAlignment(landmarks) {
+      if (!landmarks || landmarks.length === 0) return { status: false, msg: "未偵測到臉部" };
+
+      // MediaPipe 關鍵點：1=鼻頭, 234=右臉頰邊緣, 454=左臉頰邊緣
+      const nose = landmarks[1];
+      const rightCheek = landmarks[234];
+      const leftCheek = landmarks[454];
+
+      // 1. 判斷是否置中 (x, y 座標介於 0.35 ~ 0.65 算中間)
+      // 注意：鏡像翻轉後，x 邏輯可能要反過來看，但求中間值不影響
+      const isCenteredX = nose.x > 0.4 && nose.x < 0.6;
+      const isCenteredY = nose.y > 0.35 && nose.y < 0.75; // 允許稍微偏下一點
+
+      if (!isCenteredX || !isCenteredY) {
+        return { status: false, msg: "請將臉部移至框框中央" };
+      }
+
+      // 2. 判斷距離 (太遠或太近)
+      // 計算左右臉頰的水平距離 (寬度)
+      const faceWidth = Math.abs(leftCheek.x - rightCheek.x);
+
+      // 數值需要依據你的 #faceGuide 大小微調
+      // 假設：寬度小於 0.35 代表太遠，大於 0.65 代表太近
+      if (faceWidth < 0.35) {
+        return { status: false, msg: "太遠了，請靠近一點" };
+      }
+      if (faceWidth > 0.65) {
+        return { status: false, msg: "太近了，請後退一點" };
+      }
+
+      // 都通過
+      return { status: true, msg: "完美！請按下拍照" };
+    }
+
+    function loop() {
+      if (!running) return;
+
+      if (!video.videoWidth || !video.videoHeight) {
+        requestAnimationFrame(loop);
+        return;
+      }
+
+      try {
+        const now = performance.now();
+        const result = faceLandmarker.detectForVideo(video, now);
+        drawEffect(result);
+        lastMetrics = packMetrics(result);
+
+        // --- 新增：執行對位檢查 ---
+        const faceGuide = document.getElementById("faceGuide");
+        // const hintEl = document.getElementById("hint"); // 變數名稱為 hint
+        const btn = document.getElementById("captureBtn");
+
+        let alignment = { status: false, msg: "偵測中..." };
+
+        if (result.faceLandmarks && result.faceLandmarks.length > 0) {
+          alignment = checkAlignment(result.faceLandmarks[0]);
+        } else {
+          alignment = { status: false, msg: "請將臉部對準鏡頭" };
+        }
+
+        // 更新 UI 狀態
+        if (hint) hint.textContent = alignment.msg;
+
+        if (alignment.status) {
+          faceGuide.classList.add("valid"); // 框框變綠
+          btn.classList.add("ready");       // 按鈕變亮可按
+        } else {
+          faceGuide.classList.remove("valid");
+          btn.classList.remove("ready");
+        }
+        // -------------------------
+
+      } catch (e) {
+        console.error("effect error:", e);
+        meshCtx.clearRect(0, 0, meshCanvas.width, meshCanvas.height);
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    async function openCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast("此瀏覽器不支援相機");
+        return;
+      }
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+
+      video.srcObject = stream;
+
+      await new Promise(resolve => {
+        if (video.readyState >= 2) return resolve();
+        video.onloadedmetadata = () => resolve();
+      });
+
+      const kick = async () => { try { await video.play(); } catch (e) { } };
+      await kick();
+      window.addEventListener("pointerdown", kick, { once: true });
+
+      syncOverlaySize();
+      if (!overlayBound) {
+        window.addEventListener("resize", syncOverlaySize);
+        overlayBound = true;
+      }
+
+      if (!faceLandmarker) await initModel();
+
+      running = true;
+      hint.textContent = "相機已啟動，請對準框線後按下拍照";
+      loop();
+    }
+
+    function stopCamera() {
+      running = false;
+      meshCtx.clearRect(0, 0, meshCanvas.width, meshCanvas.height);
+
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+    }
+
+    function flashOnce() {
+      flash.style.opacity = 1;
+      setTimeout(() => flash.style.opacity = 0, 120);
+    }
+
+    async function getJpegBlob() {
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      if (!w || !h) throw new Error("Video not ready");
+
+      canvas.width = w;
+      canvas.height = h;
+
+      const ctx = canvas.getContext("2d");
+      ctx.save();
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, w, h);
+      ctx.restore();
+
+      const blob = await new Promise(resolve => {
+        canvas.toBlob(b => resolve(b), "image/jpeg", 0.95);
+      });
+      if (!blob) throw new Error("toBlob failed");
+      return blob;
+    }
+
+    captureBtn.addEventListener("click", async () => {
+      if (busy) return;
+      busy = true;
+      cameraBox.classList.add("loading");
+
+      try {
+        if (!stream) throw new Error("camera not started");
+
+        const blob = await getJpegBlob();
+        flashOnce();
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+        localStorage.setItem("user_photo", dataUrl);
+
+        if (SKIP_UPLOAD) {
+          localStorage.removeItem("result");
+          localStorage.setItem("force_demo", "1");
+          stopCamera();
+          location.hash = "#result";
+          return;
+        }
+
+        surveyRaw = localStorage.getItem("survey") || "{}";
+        const form = new FormData();
+        form.append("photo", blob, "capture.jpg");
+        form.append("survey", surveyRaw);
+        if (lastMetrics) form.append("metrics_json", JSON.stringify(lastMetrics));
+
+        const res = await fetch("api/analyze.php", { method: "POST", body: form });
+
+        if (!res.ok) {
+          toast("後端分析失敗（請看 api/analyze.php）");
+          return;
+        }
+
+        const ct = res.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) {
+          const text = await res.text();
+          console.error("Non-JSON response:", text.slice(0, 400));
+          toast("後端回傳不是 JSON（請檢查 PHP 輸出）");
+          return;
+        }
+
+        const payload = await res.json();
+        localStorage.setItem("result", JSON.stringify(payload));
+
+        stopCamera();
+        location.hash = "#result";
+      } catch (e) {
+        console.error(e);
+        toast("拍照/上傳失敗（請允許相機權限）");
+      } finally {
+        cameraBox.classList.remove("loading");
+        busy = false;
+      }
+    });
+
+    window.startAnalyzePage = async () => {
+      if (analyzeActive) return;
+      analyzeActive = true;
+      openCamera().catch(e => {
+        console.error(e);
+        toast("無法開啟相機：請允許權限，並用 http/https 開啟頁面");
+        hint.textContent = "相機啟動失敗：請允許權限/用 http 或 https 打開";
+      });
+    };
+
+    window.stopAnalyzePage = () => {
+      analyzeActive = false;
+      stopCamera();
+    };
+
+    window.addEventListener("beforeunload", stopCamera);
+  </script>
+  <script type="module">
+    const toastEl = document.getElementById("toast");
+    function toast(msg) {
+      if (!toastEl) return;
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      setTimeout(() => toastEl.classList.remove("show"), 1800);
+    }
+
+    function loadResult() {
+      const keys = ["result", "ai_result", "analysis_result", "payload"];
+      for (const k of keys) {
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        try { return JSON.parse(raw); } catch (e) { }
+      }
+      return null;
+    }
+
+    function getDemoPayload() {
+      return {
+        timestamp: new Date().toISOString(),
+        overall: 78,
+        metrics: {
+          glow: 72,
+          complexion: 80,
+          blemish: 64,
+          oilBalance: 70,
+          evenness: 75
+        },
+        tips: [
+          "建議在自然光下拍攝，避免背光造成氣色偏低。",
+          "先把保養做穩：保濕＋防曬，連續 7 天再看趨勢。",
+          "若偏油：減少厚重乳霜；若偏乾：增加保濕層並降低去角質頻率。",
+          "固定同一時間、同一光線拍 3 天，結果更可信。"
+        ],
+        products: []
+      };
+    }
+
+    const url = new URL(location.href);
+    const forceDemo =
+      url.searchParams.get("demo") === "1" ||
+      localStorage.getItem("force_demo") === "1" ||
+      location.hash.includes("demo=1");
+    if (forceDemo) localStorage.removeItem("force_demo");
+
+    let payload = forceDemo ? null : loadResult();
+    if (!payload) {
+      payload = getDemoPayload();
+      toast("已載入測試數值（demo）");
+    }
+
+    const m = payload.metrics || {};
+    const toNum = (v, fallback = 0) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    };
+
+    const metrics = {
+      glow: toNum(m.glow ?? m.光澤, 72),
+      complexion: toNum(m.complexion ?? m.氣色, 78),
+      blemish: toNum(m.blemish ?? m.瑕疵, 64),
+      oilBalance: toNum(m.oilBalance ?? m.油水平衡, 70),
+      evenness: toNum(m.evenness ?? m.均勻度, 75),
+    };
+
+    const overall = toNum(payload.overall, Math.round(
+      (metrics.glow + metrics.complexion + metrics.blemish + metrics.oilBalance + metrics.evenness) / 5
+    ));
+
+    const quality =
+      overall >= 85 ? "狀態極佳" :
+        overall >= 75 ? "整體良好" :
+          overall >= 60 ? "可再提升" : "需要加強";
+
+    function toScore10(score100) {
+      const n = Number(score100);
+      if (!Number.isFinite(n)) return 0;
+      return Math.round((n / 10) * 10) / 10;
+    }
+
+    function setStepAFromMetrics() {
+      const score10 = toScore10(metrics.complexion);
+
+      const aScore = document.getElementById("aScore");
+      const aStatusText = document.getElementById("aStatusText");
+      const aHintText = document.getElementById("aHintText");
+
+      if (aScore) aScore.textContent = score10.toFixed(1);
+
+      let status = "狀態不錯";
+      if (score10 >= 8.5) status = "今天狀態極佳";
+      else if (score10 >= 7.0) status = "今天狀態良好";
+      else if (score10 >= 6.0) status = "今天略疲憊";
+      else status = "今天狀態不佳";
+      if (aStatusText) aStatusText.textContent = status;
+
+      if (aHintText) {
+        aHintText.textContent =
+          score10 < 6.0
+            ? "好消息：氣色可在 5 分鐘內改善！"
+            : "維持住！做 2–3 分鐘按摩會更亮。";
+      }
+    }
+
+    function loadUserPhoto() {
+      const img = document.getElementById("aUserPhoto");
+      const block = document.getElementById("aPhotoBlock");
+      if (!img || !block) return;
+
+      const fromPayload = payload.photo || payload.image || payload.photoDataUrl;
+      const fromLS =
+        localStorage.getItem("user_photo") ||
+        localStorage.getItem("captured_photo") ||
+        localStorage.getItem("photo");
+
+      const src = fromPayload || fromLS;
+
+      if (src) {
+        img.src = src;
+        block.style.display = "block";
+      } else {
+        block.style.display = "none";
+      }
+    }
+
+    document.getElementById("overallNum").textContent = overall;
+    const scoreTag = document.getElementById("scoreTag");
+    if (scoreTag) scoreTag.textContent = `Score ${overall}`;
+    const aOverallNum = document.getElementById("aOverallNum");
+    if (aOverallNum) aOverallNum.textContent = overall;
+    document.getElementById("qualityChip").textContent = quality;
+
+    const ts = payload.timestamp ? new Date(payload.timestamp) : new Date();
+    document.getElementById("timestampChip").textContent = ts.toLocaleString();
+
+    setStepAFromMetrics();
+    loadUserPhoto();
+
+    function drawRadar(canvas, values, labels) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      const cx = W / 2, cy = H / 2;
+      const radius = Math.min(W, H) * 0.34;
+      const N = labels.length;
+
+      ctx.lineWidth = 1;
+      for (let k = 1; k <= 8; k++) {
+        const r = radius * (k / 8);
+        ctx.beginPath();
+        for (let i = 0; i < N; i++) {
+          const a = (-Math.PI / 2) + (i * 2 * Math.PI / N);
+          const x = cx + r * Math.cos(a);
+          const y = cy + r * Math.sin(a);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = "rgba(0,0,0,.10)";
+        ctx.stroke();
+      }
+
+      for (let i = 0; i < N; i++) {
+        const a = (-Math.PI / 2) + (i * 2 * Math.PI / N);
+        const x = cx + radius * Math.cos(a);
+        const y = cy + radius * Math.sin(a);
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = "rgba(0,0,0,.12)";
+        ctx.stroke();
+
+        const lx = cx + (radius + 18) * Math.cos(a);
+        const ly = cy + (radius + 18) * Math.sin(a);
+        ctx.fillStyle = "rgba(24,11,10,.72)";
+        ctx.font = "12px -apple-system, Segoe UI, sans-serif";
+        ctx.textAlign = (Math.cos(a) > 0.2) ? "left" : (Math.cos(a) < -0.2 ? "right" : "center");
+        ctx.textBaseline = (Math.sin(a) > 0.2) ? "top" : (Math.sin(a) < -0.2 ? "bottom" : "middle");
+        ctx.fillText(labels[i], lx, ly);
+      }
+
+      const vals = values.map(v => Math.max(0, Math.min(100, Number(v))) / 100);
+      ctx.beginPath();
+      for (let i = 0; i < N; i++) {
+        const a = (-Math.PI / 2) + (i * 2 * Math.PI / N);
+        const r = radius * vals[i];
+        const x = cx + r * Math.cos(a);
+        const y = cy + r * Math.sin(a);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+
+      ctx.fillStyle = "rgba(255,157,184,.22)";
+      ctx.strokeStyle = "rgba(216,189,91,.85)";
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.stroke();
+
+      for (let i = 0; i < N; i++) {
+        const a = (-Math.PI / 2) + (i * 2 * Math.PI / N);
+        const r = radius * vals[i];
+        const x = cx + r * Math.cos(a);
+        const y = cy + r * Math.sin(a);
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(216,189,91,.95)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,.9)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    const radarValues = [metrics.glow, metrics.complexion, metrics.blemish, metrics.oilBalance, metrics.evenness];
+    const radarLabels = ["光澤", "氣色", "瑕疵", "油水平衡", "均勻度"];
+
+    const radar = document.getElementById("radar");
+    if (radar) drawRadar(radar, radarValues, radarLabels);
+
+    const radarA = document.getElementById("radarA");
+    if (radarA) drawRadar(radarA, radarValues, radarLabels);
+
+    const radarB = document.getElementById("radarB");
+    if (radarB) drawRadar(radarB, radarValues, radarLabels);
+
+    drawRadar(document.getElementById("radar"), radarValues, radarLabels);
+    drawRadar(document.getElementById("detailRadar"), radarValues, radarLabels);
+
+    const bars = document.getElementById("bars");
+    const barDefs = [
+      ["光澤", metrics.glow],
+      ["氣色", metrics.complexion],
+      ["瑕疵", metrics.blemish],
+      ["油水平衡", metrics.oilBalance],
+      ["均勻度", metrics.evenness],
+    ];
+
+    bars.innerHTML = "";
+    for (const [label, val] of barDefs) {
+      const v = Math.max(0, Math.min(100, Number(val)));
+      const row = document.createElement("div");
+      row.className = "barRow";
+      row.innerHTML = `
+        <div class="barLabel">${label}</div>
+        <div class="barTrack"><div class="barFill" style="width:${v}%"></div></div>
+        <div class="barVal">${v}</div>
+      `;
+      bars.appendChild(row);
+    }
+
+    const summaryCards = document.getElementById("summaryCards");
+
+    function addCard(title, val, hint) {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
+          <div><span class="badge">${title}</span></div>
+          <div style="font-weight:900;">${val}</div>
+        </div>
+        <div class="mutedText" style="margin-top:6px;">${hint}</div>
+      `;
+      summaryCards.appendChild(div);
+    }
+
+    summaryCards.innerHTML = "";
+    addCard("氣色", metrics.complexion, "偏低常見原因：睡眠不足、背光、妝容/濾鏡干擾。");
+    addCard("膚況", Math.round((metrics.blemish + metrics.evenness) / 2), "瑕疵＋均勻度一起看，代表整體膚況穩定性。");
+    addCard("光澤", metrics.glow, "光澤與光線很相關：自然光、避免直射反光更準。");
+    addCard("油水平衡", metrics.oilBalance, "太油或太乾都會影響均勻度與瑕疵，建議觀察 T 字/兩頰差異。");
+
+    const riskList = document.getElementById("riskList");
+    const risks = [];
+    if (metrics.complexion < 60) risks.push("氣色偏低：先確認光線 + 睡眠狀態（此為參考，不代表健康診斷）。");
+    if (metrics.blemish < 55) risks.push("瑕疵指標偏低：建議先從清潔、保濕與防曬一致性開始。");
+    if (metrics.oilBalance < 55) risks.push("油水平衡偏低：可能過乾/過油，建議簡化保養並觀察 3–7 天。");
+    if (risks.length === 0) risks.push("沒有明顯風險指標，維持目前作息與防曬習慣即可。");
+
+    riskList.innerHTML = "";
+    risks.forEach(t => {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.textContent = t;
+      riskList.appendChild(div);
+    });
+
+    window.switchStep = function switchStep(outId, inId) {
+      const outE = document.getElementById(outId);
+      const inE = document.getElementById(inId);
+      if (!outE || !inE) return;
+
+      outE.classList.remove("visible");
+      setTimeout(() => {
+        inE.classList.add("visible");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 120);
+    };
+
+    const tipsList = document.getElementById("tipsList");
+
+    function uniqPush(arr, txt) {
+      if (!txt) return;
+      if (!arr.includes(txt)) arr.push(txt);
+    }
+
+    const tipsBase = Array.isArray(payload.tips) && payload.tips.length
+      ? payload.tips.filter(Boolean)
+      : [];
+
+    const tips = tipsBase.slice();
+
+    if (metrics.complexion < 60) {
+      uniqPush(tips, "氣色偏低：自然光側光重拍，並把睡眠拉回（提早 30–60 分鐘上床最有效）。");
+      uniqPush(tips, "早餐補水＋蛋白質（豆漿/蛋/優格）能讓氣色更穩。");
+    }
+    if (metrics.blemish < 55) {
+      uniqPush(tips, "瑕疵偏低：清潔改溫和，洗面 40–60 秒，避免用力摩擦。");
+      uniqPush(tips, "粉刺/痘痘多：先穩定保濕＋防曬，再逐步加入功能型產品。");
+    }
+    if (metrics.oilBalance < 55) {
+      uniqPush(tips, "油水平衡偏低：先簡化保養 3–7 天觀察（越簡單越穩）。");
+      uniqPush(tips, "白天用吸油面紙輕壓即可，別過度控油。");
+    }
+    if (metrics.glow < 60) {
+      uniqPush(tips, "光澤偏低：避免背光與頂光，用窗邊自然側光，距離 30–40cm。");
+      uniqPush(tips, "保養先把保濕層做好（化妝水/精華）再加鎖水乳。");
+    }
+    if (metrics.evenness < 60) {
+      uniqPush(tips, "均勻度偏低：防曬要穩定，並減少摩擦（洗臉/擦拭要溫柔）。");
+      uniqPush(tips, "固定同一時間連拍 3 天再看趨勢，單次波動很常見。");
+    }
+
+    const tipFallback = [
+      "固定同一時間、同一光線拍 3 天，趨勢比單次更可信。",
+      "保養順序先穩：清潔 → 保濕 → 防曬；功能型產品等穩定後再加。",
+      "拍攝時避免濾鏡、美肌、誇張補光，否則指標會被干擾。",
+      "室內偏黃光會拉低氣色與均勻度，盡量靠窗自然光。",
+      "今天狀態差別急著下結論：用 7 天平均值更準。"
+    ];
+    for (const t of tipFallback) {
+      if (tips.length >= 6) break;
+      uniqPush(tips, t);
+    }
+
+    document.getElementById("tipsCount").textContent = `${tips.length} 條`;
+
+    function renderTips(container, list) {
+      container.innerHTML = "";
+      list.forEach((t, idx) => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<span class="badge">#${idx + 1}</span> ${t}`;
+        container.appendChild(div);
+      });
+    }
+    renderTips(tipsList, tips.slice(0, 4));
+
+    const productList = document.getElementById("productList");
+    const productListDetail = document.getElementById("productListDetail");
+
+    function buildFakeProducts(total = 100) {
+      const tags = ["保濕", "打底", "光澤", "均勻度", "油水平衡", "瑕疵改善", "修護", "防曬", "舒緩", "急救"];
+      const descs = [
+        "適合日常維穩，先把底盤顧好。",
+        "針對弱項加強，建議連續使用 7 天觀察趨勢。",
+        "溫和路線，降低刺激、讓膚況更穩。",
+        "加強補水與修護，光澤通常會一起提升。",
+        "搭配防曬更有效，均勻度提升更明顯。"
+      ];
+      return Array.from({ length: total }, (_, i) => {
+        const tag = tags[i % tags.length];
+        const desc = descs[i % descs.length];
+        return {
+          name: `測試商品 ${String(i + 1).padStart(3, "0")}`,
+          desc,
+          tag,
+          url: "#",
+          image: "assets/background.jpg"
+        };
+      });
+    }
+
+    const backendProducts = Array.isArray(payload.products) ? payload.products.filter(Boolean) : [];
+    const TARGET = 100;
+
+    const ALL_PRODUCTS =
+      backendProducts.length >= TARGET
+        ? backendProducts.slice(0, TARGET)
+        : backendProducts.concat(buildFakeProducts(TARGET - backendProducts.length));
+
+    let page = 0;
+    const PAGE_SIZE = 8;
+    let loading = false;
+    let pageDetail = 0;
+    const PAGE_SIZE_DETAIL = 8;
+    let loadingDetail = false;
+
+    function createProductCard(p) {
+      const div = document.createElement("div");
+      div.className = "item productCard fade-in";
+      div.dataset.kind = "product";
+      const imgUrl = p.image || p.img || p.photo || "assets/background.jpg";
+      div.innerHTML = `
+        <img class="productImg" src="${imgUrl}" alt="${p.name || "商品"}" />
+        <div class="productBody">
+          <div class="productTitle">${p.name || "推薦項目"}</div>
+          <div class="mutedText">${p.desc || "建議方向：依你的指標弱項優先補強。"}</div>
+          <div class="productMeta">
+            <span class="badge">${p.tag || "建議"}</span>
+            <a class="productCta" href="${p.url || "#"}" target="_blank" rel="noopener">查看</a>
+          </div>
+        </div>
+      `;
+      return div;
+    }
+
+    function updateProductCount() {
+      const cards = productList.querySelectorAll('[data-kind="product"]');
+      document.getElementById("productCount").textContent = `${cards.length} 項`;
+    }
+    function updateProductCount2() {
+      if (!productListDetail) return;
+      const cards = productListDetail.querySelectorAll('[data-kind="product"]');
+      const productCount2 = document.getElementById("productCount2");
+      if (productCount2) productCount2.textContent = `${cards.length} 項`;
+    }
+
+    function loadMoreX() {
+      if (loading) return;
+      loading = true;
+
+      const start = page * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+      const slice = ALL_PRODUCTS.slice(start, end);
+
+      if (slice.length === 0) {
+        sentinelXText.textContent = "已經到底了";
+        loading = false;
+        return;
+      }
+
+      slice.forEach(p => {
+        const card = createProductCard(p);
+        productList.insertBefore(card, sentinelX);
+      });
+
+      page++;
+      updateProductCount();
+      loading = false;
+    }
+
+    function loadMoreDetail() {
+      if (!productListDetail || loadingDetail) return;
+      loadingDetail = true;
+
+      const start = pageDetail * PAGE_SIZE_DETAIL;
+      const end = start + PAGE_SIZE_DETAIL;
+      const slice = ALL_PRODUCTS.slice(start, end);
+
+      if (slice.length === 0) {
+        sentinelDetailText.textContent = "已經到底了";
+        loadingDetail = false;
+        return;
+      }
+
+      slice.forEach(p => {
+        const card = createProductCard(p);
+        productListDetail.insertBefore(card, sentinelDetail);
+      });
+
+      pageDetail++;
+      updateProductCount2();
+      loadingDetail = false;
+    }
+
+    const sentinelX = document.createElement("div");
+    sentinelX.id = "productSentinelX";
+    const sentinelXText = document.createElement("div");
+    sentinelXText.textContent = "往右滑載入更多 →";
+    sentinelX.appendChild(sentinelXText);
+
+    const sentinelDetail = document.createElement("div");
+    sentinelDetail.id = "productSentinelDetail";
+    const sentinelDetailText = document.createElement("div");
+    sentinelDetailText.textContent = "往右滑載入更多 →";
+    sentinelDetail.appendChild(sentinelDetailText);
+
+    productList.innerHTML = "";
+    productList.appendChild(sentinelX);
+    page = 0;
+    loadMoreX();
+
+    if (productListDetail) {
+      productListDetail.innerHTML = "";
+      productListDetail.appendChild(sentinelDetail);
+      pageDetail = 0;
+      loadMoreDetail();
+    }
+
+    const ioX = new IntersectionObserver((entries) => {
+      const e = entries[0];
+      if (e.isIntersecting) {
+        loadMoreX();
+      }
+    }, {
+      root: productList,
+      rootMargin: "0px 420px 0px 0px",
+      threshold: 0
+    });
+
+    ioX.observe(sentinelX);
+
+    if (productListDetail) {
+      const ioDetail = new IntersectionObserver((entries) => {
+        const e = entries[0];
+        if (e.isIntersecting) {
+          loadMoreDetail();
+        }
+      }, {
+        root: productListDetail,
+        rootMargin: "0px 420px 0px 0px",
+        threshold: 0
+      });
+
+      ioDetail.observe(sentinelDetail);
+    }
+  </script>
+
+  <script type="module">
+    const pages = Array.from(document.querySelectorAll(".page"));
+
+    function setActive(page) {
+      pages.forEach(p => {
+        p.classList.toggle("active", p.dataset.page === page);
+      });
+    }
+
+    function getPageFromHash() {
+      const raw = location.hash.replace("#", "").trim();
+      if (!raw) return "home";
+      return raw.split("?")[0].split("&")[0];
+    }
+
+    function route() {
+      const page = getPageFromHash();
+      setActive(page);
+
+      if (page === "analyze" && window.startAnalyzePage) {
+        window.startAnalyzePage();
+      } else if (window.stopAnalyzePage) {
+        window.stopAnalyzePage();
+      }
+    }
+
+    window.go = (page) => {
+      location.hash = `#${page}`;
+    };
+
+    window.addEventListener("hashchange", route);
+    if (!location.hash) location.hash = "#home";
+    route();
+  </script>
+</body>
+
+</html>

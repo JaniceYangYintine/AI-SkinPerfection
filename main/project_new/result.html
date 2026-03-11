@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>結果</title>
+  <link rel="stylesheet" href="assets/app.css" />
+
+  <style>
+    /* ✅ 讓結果頁可以滾動（避免 app.css overflow:hidden 造成看不到下面） */
+    html, body { height: 100%; overflow: auto; }
+
+    /* ✅ 這頁專用微調（不破壞 app.css） */
+    .stage{ align-items:flex-start; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:12px;
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns: 1fr;}
+    }
+
+    .panel{
+      padding:14px;
+      border-radius:16px;
+      background: rgba(255,255,255,.62);
+      border: 1px solid rgba(0,0,0,.08);
+      box-shadow: 0 18px 60px rgba(0,0,0,.10);
+      color: rgba(24,11,10,.92);
+    }
+
+    .panel .h{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .panel .h strong{
+      font-size:13px;
+      letter-spacing:.8px;
+    }
+
+    .chip{
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid rgba(0,0,0,.10);
+      background: rgba(255,255,255,.7);
+      white-space:nowrap;
+    }
+
+    .score{
+      display:flex;
+      align-items:flex-end;
+      gap:12px;
+    }
+    .score .num{
+      font-size:46px;
+      font-weight:900;
+      letter-spacing:1px;
+      line-height:1;
+      background: linear-gradient(135deg, rgba(255,157,184,.95), rgba(216,189,91,.95));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .score .meta{
+      font-size:12px;
+      color: rgba(24,11,10,.70);
+      line-height:1.5;
+    }
+
+    .canvasWrap{
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(0,0,0,.10);
+      background: rgba(255,255,255,.55);
+    }
+    canvas{display:block; width:100%; height:auto;}
+
+    .list{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+    .item{
+      padding:10px 12px;
+      border-radius:14px;
+      background: rgba(255,255,255,.70);
+      border: 1px solid rgba(0,0,0,.08);
+      color: rgba(24,11,10,.90);
+      font-size:13px;
+      line-height:1.5;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid rgba(0,0,0,.10);
+      background: rgba(255,255,255,.85);
+      margin-right:8px;
+      white-space:nowrap;
+    }
+    .mutedText{color: rgba(24,11,10,.68); font-size:12px; line-height:1.5;}
+
+    /* ✅ Bar Chart 行 */
+    .barRow{
+      display:flex; align-items:center; gap:12px;
+      padding:10px 12px;
+      border-radius:14px;
+      background: rgba(255,255,255,.62);
+      border: 1px solid rgba(0,0,0,.08);
+    }
+    .barLabel{ width:110px; font-size:12px; color: rgba(24,11,10,.74); }
+    .barTrack{
+      flex:1;
+      height:12px;
+      border-radius:999px;
+      background: rgba(0,0,0,.10);
+      overflow:hidden;
+    }
+    .barFill{
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      background: linear-gradient(135deg, rgba(242,216,140,.95), rgba(255,157,184,.85));
+    }
+    .barVal{ width:42px; text-align:right; font-weight:900; font-size:12px; }
+
+    #radarA{
+    width: 450px;     /* 👉 想多小就改這裡 */
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    } 
+
+    #radarB{
+    width: 450px;     /* 👉 想多小就改這裡 */
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    } 
+
+
+
+    /* 商品推薦 */
+    .productTitle{font-weight:900; margin-bottom:4px;}
+    .productMeta{display:flex; gap:8px; align-items:center; margin-top:6px; font-size:12px; color: rgba(24,11,10,.68);}
+
+    /* ✅ 每張卡片固定寬，橫向滑更像商品列 */
+    .productCard{
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      min-width: 220px;
+      flex: 0 0 220px;
+      scroll-snap-align: start;
+    }
+    .productImg{
+      width:100%;
+      height:140px;
+      object-fit:cover;
+      border-radius:10px;
+      border:1px solid rgba(0,0,0,.08);
+      background:#f3f3f3;
+    }
+    .productBody{padding-top:8px;}
+    .productCta{
+      margin-left:auto;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.12);
+      background: rgba(255,255,255,.75);
+      font-size:12px;
+      cursor:pointer;
+      text-decoration:none;
+      color: rgba(24,11,10,.86);
+    }
+
+    .step{display:none; opacity:0; transition: opacity .35s ease;}
+    .step.visible{display:block; opacity:1;}
+
+    .detailLink{
+      margin-top:10px;
+      background:none;
+      border:none;
+      color: rgba(24,11,10,.78);
+      font-size:12px;
+      cursor:pointer;
+      text-decoration: underline;
+      padding:0;
+      transition: transform .15s ease;
+    }
+    .detailLink:hover{transform: translateX(2px);}
+
+    .demoBox{
+      height:80px;
+      border-radius:12px;
+      background:#f7f7f7;
+      border:1px dashed rgba(0,0,0,.12);
+      line-height:80px;
+      text-align:center;
+      color:#aaa;
+      font-size:12px;
+    }
+
+    .detailActions{display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap;}
+    .abnormalItem{
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:14px;
+      padding:10px 12px;
+      background: rgba(255,255,255,.70);
+      margin-top:10px;
+    }
+    .largeItem{
+      padding:16px;
+      font-size:14px;
+      line-height:1.7;
+    }
+
+    /* ✅ 橫向商品列（覆蓋 .list 的 column） */
+    #productList{
+      display:flex;
+      flex-direction:row;
+      gap:10px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      padding-bottom:6px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      margin-top:10px;
+    }
+    #productListDetail{
+      display:flex;
+      flex-direction:row;
+      gap:10px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      padding-bottom:6px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      margin-top:10px;
+    }
+     
+    #productSentinelDetail{
+      flex: 0 0 160px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:14px;
+      background: rgba(255,255,255,.45);
+      border: 1px dashed rgba(0,0,0,.14);
+      color: rgba(24,11,10,.65);
+      font-size: 12px;
+      user-select:none;
+      min-height: 210px;
+    }
+
+
+    /* ✅ 右邊 sentinel（無限載入觸發點） */
+    #productSentinelX{
+      flex: 0 0 160px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:14px;
+      background: rgba(255,255,255,.45);
+      border: 1px dashed rgba(0,0,0,.14);
+      color: rgba(24,11,10,.65);
+      font-size: 12px;
+      user-select:none;
+      min-height: 210px;
+    }
+
+    /* ✅ 卡片淡入動畫 */
+    @keyframes cardFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in{ animation: cardFadeIn .35s ease both; }
+
+    /* ✅ 美化橫向滾動條 */
+    #productList::-webkit-scrollbar{ height: 10px; }
+    #productList::-webkit-scrollbar-thumb{ background: rgba(0,0,0,.12); border-radius: 999px; }
+    #productList::-webkit-scrollbar-track{ background: transparent; }
+    #productListDetail::-webkit-scrollbar{ height: 10px; }
+    #productListDetail::-webkit-scrollbar-thumb{ background: rgba(0,0,0,.12); border-radius: 999px; }
+    #productListDetail::-webkit-scrollbar-track{ background: transparent; }
+  </style>
+</head>
+
+<body>
+  <div class="bg-glass"></div>
+
+  <header>
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>結果</h1>
+        <p>五角分析 × 氣色 × 膚況 × 建議</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn" onclick="location.href='analyze.html'">再分析</button>
+      <button class="btn" onclick="location.href='index.html'">回首頁</button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="title">AI 分析報告</div>
+          <div class="sub">資料來源：localStorage（沒資料會自動用測試數值）</div>
+        </div>
+        
+      </div>
+
+      <div class="body">
+
+        <!-- ✅ STEP 3：總覽 -->
+        <div id="step-3" class="step visible">
+
+          <div class="grid" id="radarSection">
+            <!-- 左：總分 + 雷達 -->
+            <div class="panel" id="summarySection">
+              <div class="h">
+                <strong>總覽（Overall）</strong>
+                <span class="chip" id="qualityChip">--</span>
+              </div>
+
+              <div class="score">
+                <div class="num" id="overallNum">--</div>
+                <div class="meta" id="overallMeta">
+                  會根據五角指標 + 氣色 + 膚況推估<br />
+                  建議拍攝：自然光、避免背光、距離 30–40cm
+                </div>
+              </div>
+
+              <div style="height:12px;"></div>
+
+              <div class="h">
+                <strong>五角雷達（五項核心）</strong>
+                <span class="chip">0–100</span>
+              </div>
+
+              <div class="canvasWrap">
+                <canvas id="radar" width="520" height="360"></canvas>
+              </div>
+
+              <div class="mutedText" style="margin-top:10px;">
+                五角建議：五個指標越平均越好；單項過低代表那項需要優先改善。
+              </div>
+
+              <!-- ✅ 這顆按鈕：目前設計成導到 Step A -->
+              <button class="detailLink" onclick="switchStep('step-3','step-a-detail')">五角雷達分析 詳情 →</button>
+            </div>
+
+            <!-- 右：氣色/膚況摘要 -->
+            <div class="panel">
+              <div class="h">
+                <strong>專業摘要</strong>
+                <span class="chip" id="timestampChip">--</span>
+              </div>
+
+              <div class="list" id="summaryCards"></div>
+
+              <div style="height:30px;"></div>
+              <div class="h">
+                <strong>風險提醒</strong>
+                <span class="chip">建議參考</span>
+              </div>
+
+              <div class="list" id="riskList"></div>
+
+              <!-- ✅ 導到 Step B -->
+              <button class="detailLink" onclick="switchStep('step-3','step-b-detail')">專業 與 風險 摘要建議 →</button>
+            </div>
+          </div>
+
+          <div style="height:12px;"></div>
+
+          <!-- 條狀圖 -->
+          <div class="kpi" style="margin-top:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div class="sub">指標明細（Bar Chart）</div>
+              <span class="tag">越高越好</span>
+            </div>
+            <div id="bars" style="margin-top:10px; display:flex; flex-direction:column; gap:10px;"></div>
+          </div>
+
+          <div style="height:12px;"></div>
+
+          <!-- 建議 -->
+          <div class="panel" id="tipsSection">
+            <div class="h">
+              <strong>改善建議（Tips）</strong>
+              <span class="chip" id="tipsCount">0</span>
+            </div>
+            <div class="list" id="tipsList"></div>
+
+            <!-- ✅ 導到 Step C（詳細版 Tips） -->
+            <button class="detailLink" onclick="switchStep('step-3','step-c-detail')">改善建議 →</button>
+          </div>
+
+          <div style="height:12px;"></div>
+
+          <!-- 商品推薦 -->
+        <div class="panel" id="productSection">
+          <div class="h">
+            <strong>商品推薦</strong>
+            <span class="chip" id="productCount">0</span>
+          </div>
+          <div class="list" id="productList"></div>
+          <button class="detailLink" onclick="switchStep('step-3','step-e-detail')">前往商品推薦 →</button>
+        </div>
+        </div>
+
+        <!-- ✅ STEP A：氣色急救站（同步分數 + 顯示照片） -->
+        <div id="step-a-detail" class="step">
+          <div class="panel">
+            <div class="h">
+              <strong>氣色急救站</strong>
+              <span class="chip">同步顯示</span>
+            </div>
+
+            <!-- ✅ A-Photo：使用者照片（有照片才顯示） -->
+            <div class="item" id="aPhotoBlock" style="display:none;">
+              <div style="font-weight:900; margin-bottom:8px;">本次拍攝照片</div>
+              <img id="aUserPhoto" alt="user photo"
+                   style="width:100%; max-height:320px; object-fit:cover; border-radius:14px; border:1px solid rgba(0,0,0,.10);" />
+              <div class="mutedText" style="margin-top:8px;">
+                來源：payload.photo 或 localStorage(user_photo)
+              </div>
+            </div>
+
+            <div class="canvasWrap" style="margin-top:12px;">
+              <canvas id="radarA" width="520" height="360"></canvas>
+            </div>
+
+            <div style="text-align:center; margin-top:10px;">
+              <div style="font-size:12px; color: rgba(24,11,10,.65);">總分（Overall）</div>
+              <div style="font-size:34px; font-weight:900;" id="aOverallNum">--</div>
+            </div>
+            
+            
+
+            <!-- ✅ A-Score：圈圈顯示 0~10 -->
+            <!-- <div class="item" style="text-align:center;">
+              <div style="width:110px; height:110px; background:#fdf2f2; border-radius:50%; display:inline-block; border:2px solid rgba(255,157,184,.55); padding-top:34px; box-sizing:border-box;">
+                <b style="font-size:16px;"><span id="aScore">--</span> / 10</b><br>
+                <small id="aStatusText">--</small>
+              </div>
+              <div id="aHintText" style="margin-top:12px; font-weight:700; color:#d84315;">
+                --
+              </div>
+            </div> -->
+
+            <!-- <div class="aRadarCircle">
+              <canvas id="aRadarMini" width="120" height="120"></canvas> -->
+
+            <!-- ✅ 文字疊在雷達圖上（想不要文字就整段刪掉） -->
+            <!-- <div class="aRadarOverlay">
+              <b style="font-size:14px;"><span id="aScore">--</span> / 10</b><br>
+              <small id="aStatusText">--</small>
+              </div>
+            </div>
+            <div id="aHintText" style="margin-top:12px; font-weight:700; color:#d84315;">--</div> -->
+
+            <div class="item">
+              <div><b>Step 1：臉部按摩 (2分鐘)</b></div>
+              <div class="demoBox">示意教學動畫區（可換成 GIF / MP4）</div>
+            </div>
+
+            <div class="item">
+              <div><b>Step 2：穴位按壓 (1分鐘)</b></div>
+              <div class="demoBox">示意教學動畫區（可換成 GIF / MP4）</div>
+            </div>
+
+            <div class="detailActions">
+              <button class="btn" onclick="switchStep('step-a-detail','step-3')">返回報告總覽</button>
+              <button class="btn" onclick="switchStep('step-a-detail','step-b-detail')">前往改善建議</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ✅ STEP B：深度問題偵測 -->
+        <div id="step-b-detail" class="step">
+          <div class="panel">
+            <div class="h">
+              <strong>深度問題偵測</strong>
+              <!-- <span class="chip">示意</span> -->
+            </div>
+
+            <div class="item">
+              <div style="font-weight:900; margin-bottom:8px;">照片預覽</div>
+              <div class="demoBox" style="height:200px;">照片顯示區（之後放後端圖片）</div>
+            </div>
+
+            <div class="canvasWrap" style="margin-top:12px;">
+              <canvas id="radarB" width="520" height="360"></canvas>
+            </div>            
+
+            <!-- <div class="item">
+              <div class="canvasWrap">
+                <canvas id="detailRadar" width="520" height="360"></canvas>
+              </div> -->
+
+              <div class="abnormalItem">
+                <div><b>異常目標 A：發炎痘痘</b></div>
+                <div class="mutedText">嚴重指數：6.8 (High) / T 字部位</div>
+              </div>
+
+              <div class="abnormalItem">
+                <div><b>異常目標 B：動態細紋</b></div>
+                <div class="mutedText">嚴重指數：6.0 (Med) / 眼尾魚尾紋</div>
+              </div>
+
+              <div class="abnormalItem">
+                <div><b>異常目標 C：毛孔粗大</b></div>
+                <div class="mutedText">嚴重指數：5.6 (Med) / 鼻翼兩側</div>
+              </div>
+
+              <div class="abnormalItem">
+                <div><b>異常目標 D：暗沉</b></div>
+                <div class="mutedText">嚴重指數：5.2 (Med) / 額頭與兩頰</div>
+              </div>
+
+              <div class="abnormalItem">
+                <div><b>異常目標 E：泛紅</b></div>
+                <div class="mutedText">嚴重指數：4.8 (Low) / 兩頰區域</div>
+              </div>
+            </div>
+
+            <div class="detailActions">
+              <!-- ✅ 修正 outId：從 B 去 C -->
+               <button class="btn" onclick="switchStep('step-b-detail','step-3')">返回報告總覽</button>
+              <button class="btn" onclick="switchStep('step-b-detail','step-c-detail')">前往改善建議</button>
+              <!-- <button class="btn" onclick="location.href='index.html'">回首頁</button> -->
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP C?生活改善建議 -->
+        <div id="step-c-detail" class="step">
+          <div class="panel">
+            <div class="h">
+              <strong>生活改善建議</strong>
+              <span class="chip">小秘訣</span>
+            </div>
+
+            <div class="item largeItem">
+              <div><b>為什麼最近氣色較差？</b></div>
+              <div class="mutedText">疲勞持續累積時，新陳代謝與修復速度會放慢。身體在提醒您需要更多支持。</div>
+            </div>
+
+            <div class="item largeItem">
+              <div><b>飲食補充建議</b></div>
+              <div class="mutedText">深綠色蔬菜、Omega-3 食物、維生素 C 水果、堅果與全穀類。</div>
+            </div>
+
+            <div class="item largeItem">
+              <div><b>作息調整</b></div>
+              <div class="mutedText">建議固定就寢時間，連續 7 天觀察氣色變化。</div>
+            </div>
+
+            <div class="detailActions">
+              <button class="btn" onclick="switchStep('step-c-detail','step-3')">返回報告總覽</button>
+              <button class="btn" onclick="switchStep('step-c-detail','step-e-detail')">前往商品推薦</button>             
+              <!-- <button class="btn" onclick="location.href='index.html'">回首頁</button> -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ✅ STEP D：智慧選品詳情（示意） -->
+        <div id="step-d-detail" class="step">
+          <div class="panel">
+            <div class="h">
+              <strong>智慧選品詳情</strong>
+              <span class="chip">示意</span>
+            </div>
+
+            <div class="item">
+              <div><b>推薦產品</b></div>
+              <div class="mutedText">針對你的弱項指標，推薦保濕／修護／防曬等方向。</div>
+            </div>
+
+            <div class="detailActions">
+              <button class="btn" onclick="switchStep('step-d-detail','step-3')">返回報告總覽</button>
+              <!-- <button class="btn" onclick="location.href='index.html'">回首頁</button> -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ✅ STEP E：商品推薦（內頁） -->
+        <div id="step-e-detail" class="step">
+          <div class="panel">
+            <div class="h">
+              <strong>商品推薦</strong>
+              <span class="chip" id="productCount2">0</span>
+            </div>
+
+            <div class="list" id="productListDetail"></div>
+
+            <div class="item">
+              <div><b>智慧選商品</b></div>
+              <div class="mutedText">依你的弱項指標自動挑選推薦清單，後續可接後端排序與個人化。</div>
+            </div>
+
+            <div class="detailActions">
+              <button class="btn" onclick="switchStep('step-e-detail','step-3')">返回報告總覽</button>
+              <!-- <button class="btn" onclick="location.href='index.html'">回首頁</button> -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // =========================================================
+    // ✅ 0) 小工具：Toast（畫面右下角提示）
+    // =========================================================
+    const toastEl = document.getElementById("toast");
+    function toast(msg){
+      if(!toastEl) return;
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      setTimeout(()=> toastEl.classList.remove("show"), 1800);
+    }
+
+    // =========================================================
+    // ✅ 1) 讀 localStorage（找不到就用 demo）
+    // =========================================================
+    function loadResult(){
+      const keys = ["result", "ai_result", "analysis_result", "payload"];
+      for(const k of keys){
+        const raw = localStorage.getItem(k);
+        if(!raw) continue;
+        try { return JSON.parse(raw); } catch(e){}
+      }
+      return null;
+    }
+
+    function getDemoPayload(){
+      return {
+        timestamp: new Date().toISOString(),
+        overall: 78,
+        metrics: {
+          glow: 72,
+          complexion: 80,
+          blemish: 64,
+          oilBalance: 70,
+          evenness: 75
+        },
+        tips: [
+          "建議在自然光下拍攝，避免背光造成氣色偏低。",
+          "先把保養做穩：保濕＋防曬，連續 7 天再看趨勢。",
+          "若偏油：減少厚重乳霜；若偏乾：增加保濕層並降低去角質頻率。",
+          "固定同一時間、同一光線拍 3 天，結果更可信。"
+        ],
+        products: []
+      };
+    }
+
+    const url = new URL(location.href);
+    const forceDemo = url.searchParams.get("demo") === "1";
+
+    let payload = forceDemo ? null : loadResult();
+    if(!payload){
+      payload = getDemoPayload();
+      toast("已載入測試數值（demo）");
+    }
+
+    // =========================================================
+    // ✅ 2) 正規化 metrics（支援中文/英文欄位 + 防 NaN）
+    // =========================================================
+    const m = payload.metrics || {};
+
+    // ✅ 工具：把任何值安全轉成數字（避免 NaN）
+    const toNum = (v, fallback = 0) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    };
+
+    const metrics = {
+      glow:       toNum(m.glow ?? m.光澤, 72),
+      complexion: toNum(m.complexion ?? m.氣色, 78),
+      blemish:    toNum(m.blemish ?? m.瑕疵, 64),
+      oilBalance: toNum(m.oilBalance ?? m.油水平衡, 70),
+      evenness:   toNum(m.evenness ?? m.均勻度, 75),
+    };
+
+    // ✅ overall：如果 payload.overall 沒給，就用五項平均
+    const overall = toNum(payload.overall, Math.round(
+      (metrics.glow + metrics.complexion + metrics.blemish + metrics.oilBalance + metrics.evenness) / 5
+    ));
+
+    // ✅ quality：總體狀態文字（你可調整門檻）
+    const quality =
+      overall >= 85 ? "狀態極佳" :
+      overall >= 75 ? "整體良好" :
+      overall >= 60 ? "可再提升" : "需要加強";
+
+    // =========================================================
+    // ✅ 3) Step A：同步分數 + 顯示使用者照片
+    // =========================================================
+
+    // ✅ 0~100 => 0~10（保留 1 位小數）
+    // 想顯示整數：return Math.round(score100 / 10);
+    function toScore10(score100){
+      const n = Number(score100);
+      if(!Number.isFinite(n)) return 0;
+      return Math.round((n / 10) * 10) / 10;
+    }
+
+    function setStepAFromMetrics(){
+      // ✅ 你要讓 Step A 顯示別的指標就改這行：
+      // metrics.complexion / metrics.glow / metrics.evenness ...
+      const score10 = toScore10(metrics.complexion);
+
+      const aScore = document.getElementById("aScore");
+      const aStatusText = document.getElementById("aStatusText");
+      const aHintText = document.getElementById("aHintText");
+
+      if(aScore) aScore.textContent = score10.toFixed(1);
+
+      // ✅ 狀態門檻（你可自行調整）
+      let status = "狀態不錯";
+      if(score10 >= 8.5) status = "今天狀態極佳";
+      else if(score10 >= 7.0) status = "今天狀態良好";
+      else if(score10 >= 6.0) status = "今天略疲憊";
+      else status = "今天狀態不佳";
+      if(aStatusText) aStatusText.textContent = status;
+
+      // ✅ 提示句（你可自己換文案）
+      if(aHintText){
+        aHintText.textContent =
+          score10 < 6.0
+            ? "好消息：氣色可在 5 分鐘內改善！"
+            : "維持住！做 2–3 分鐘按摩會更亮。";
+      }
+    }
+
+    function loadUserPhoto(){
+      const img = document.getElementById("aUserPhoto");
+      const block = document.getElementById("aPhotoBlock");
+      if(!img || !block) return;
+
+      // ✅ 你未來如果把照片放進 payload，就用 payload.photo
+      const fromPayload = payload.photo || payload.image || payload.photoDataUrl;
+
+      // ✅ 你拍照頁存 localStorage 用這些 key 也吃得到
+      // 建議統一存：localStorage.setItem("user_photo", dataURL)
+      const fromLS =
+        localStorage.getItem("user_photo") ||
+        localStorage.getItem("captured_photo") ||
+        localStorage.getItem("photo");
+
+      const src = fromPayload || fromLS;
+
+      if(src){
+        img.src = src;
+        block.style.display = "block";
+      }else{
+        block.style.display = "none";
+      }
+    }
+
+    // =========================================================
+    // ✅ 4) 把總覽上的文字填上去
+    // =========================================================
+    document.getElementById("overallNum").textContent = overall;
+    const scoreTag = document.getElementById("scoreTag");
+    if (scoreTag) scoreTag.textContent = `Score ${overall}`;
+    const aOverallNum = document.getElementById("aOverallNum");
+    if (aOverallNum) aOverallNum.textContent = overall;
+    document.getElementById("qualityChip").textContent = quality;
+
+    const ts = payload.timestamp ? new Date(payload.timestamp) : new Date();
+    document.getElementById("timestampChip").textContent = ts.toLocaleString();
+
+    // 初始化 Step A
+    setStepAFromMetrics();
+    loadUserPhoto();
+
+    // =========================================================
+    // ✅ 5) Radar Chart（原生 Canvas）
+    // =========================================================
+    function drawRadar(canvas, values, labels){
+      if(!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
+
+      const cx = W/2, cy = H/2;
+      const radius = Math.min(W, H) * 0.34;
+      const N = labels.length;
+
+      // 背景圈
+      ctx.lineWidth = 1;
+      for(let k=1;k<=8;k++){
+        const r = radius * (k/8);
+        ctx.beginPath();
+        for(let i=0;i<N;i++){
+          const a = (-Math.PI/2) + (i * 2*Math.PI / N);
+          const x = cx + r * Math.cos(a);
+          const y = cy + r * Math.sin(a);
+          if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = "rgba(0,0,0,.10)";
+        ctx.stroke();
+      }
+
+      // 軸線 + 標籤
+      for(let i=0;i<N;i++){
+        const a = (-Math.PI/2) + (i * 2*Math.PI / N);
+        const x = cx + radius * Math.cos(a);
+        const y = cy + radius * Math.sin(a);
+
+        ctx.beginPath();
+        ctx.moveTo(cx,cy);
+        ctx.lineTo(x,y);
+        ctx.strokeStyle = "rgba(0,0,0,.12)";
+        ctx.stroke();
+
+        const lx = cx + (radius + 18) * Math.cos(a);
+        const ly = cy + (radius + 18) * Math.sin(a);
+        ctx.fillStyle = "rgba(24,11,10,.72)";
+        ctx.font = "12px -apple-system, Segoe UI, sans-serif";
+        ctx.textAlign = (Math.cos(a) > 0.2) ? "left" : (Math.cos(a) < -0.2 ? "right" : "center");
+        ctx.textBaseline = (Math.sin(a) > 0.2) ? "top" : (Math.sin(a) < -0.2 ? "bottom" : "middle");
+        ctx.fillText(labels[i], lx, ly);
+      }
+
+      // 數值區塊
+      const vals = values.map(v=> Math.max(0, Math.min(100, Number(v))) / 100);
+      ctx.beginPath();
+      for(let i=0;i<N;i++){
+        const a = (-Math.PI/2) + (i * 2*Math.PI / N);
+        const r = radius * vals[i];
+        const x = cx + r * Math.cos(a);
+        const y = cy + r * Math.sin(a);
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.closePath();
+
+      ctx.fillStyle = "rgba(255,157,184,.22)";
+      ctx.strokeStyle = "rgba(216,189,91,.85)";
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.stroke();
+
+      // 點
+      for(let i=0;i<N;i++){
+        const a = (-Math.PI/2) + (i * 2*Math.PI / N);
+        const r = radius * vals[i];
+        const x = cx + r * Math.cos(a);
+        const y = cy + r * Math.sin(a);
+        ctx.beginPath();
+        ctx.arc(x,y,6,0,Math.PI*2);
+        ctx.fillStyle = "rgba(216,189,91,.95)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,.9)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    // const radarValues = [metrics.glow, metrics.complexion, metrics.blemish, metrics.oilBalance, metrics.evenness];
+    // const radarLabels = ["光澤","氣色","瑕疵","油水平衡","均勻度"];
+
+    const radarValues = [metrics.glow, metrics.complexion, metrics.blemish, metrics.oilBalance, metrics.evenness];
+    const radarLabels = ["光澤","氣色","瑕疵","油水平衡","均勻度"];
+
+    // ✅ 外頁雷達
+    const radar = document.getElementById("radar");
+    if (radar) drawRadar(radar, radarValues, radarLabels);
+
+    // ✅ 內頁雷達（Step A）
+    const radarA = document.getElementById("radarA");
+    if (radarA) drawRadar(radarA, radarValues, radarLabels);
+
+    // ✅ 如果你還有 Step B 的雷達也要同步，就再加：
+    const radarB = document.getElementById("radarB");
+    if (radarB) drawRadar(radarB, radarValues, radarLabels);
+
+    drawRadar(document.getElementById("radar"), radarValues, radarLabels);
+    drawRadar(document.getElementById("detailRadar"), radarValues, radarLabels);
+
+    // =========================================================
+    // ✅ 6) Bar Chart（DOM 版）
+    // =========================================================
+    const bars = document.getElementById("bars");
+    const barDefs = [
+      ["光澤", metrics.glow],
+      ["氣色", metrics.complexion],
+      ["瑕疵", metrics.blemish],
+      ["油水平衡", metrics.oilBalance],
+      ["均勻度", metrics.evenness],
+    ];
+
+    bars.innerHTML = "";
+    for(const [label, val] of barDefs){
+      const v = Math.max(0, Math.min(100, Number(val)));
+      const row = document.createElement("div");
+      row.className = "barRow";
+      row.innerHTML = `
+        <div class="barLabel">${label}</div>
+        <div class="barTrack"><div class="barFill" style="width:${v}%"></div></div>
+        <div class="barVal">${v}</div>
+      `;
+      bars.appendChild(row);
+    }
+
+    // =========================================================
+    // ✅ 7) 專業摘要卡
+    // =========================================================
+    const summaryCards = document.getElementById("summaryCards");
+
+    function addCard(title, val, hint){
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
+          <div><span class="badge">${title}</span></div>
+          <div style="font-weight:900;">${val}</div>
+        </div>
+        <div class="mutedText" style="margin-top:6px;">${hint}</div>
+      `;
+      summaryCards.appendChild(div);
+    }
+
+    summaryCards.innerHTML = "";
+    addCard("氣色", metrics.complexion, "偏低常見原因：睡眠不足、背光、妝容/濾鏡干擾。");
+    addCard("膚況", Math.round((metrics.blemish + metrics.evenness)/2), "瑕疵＋均勻度一起看，代表整體膚況穩定性。");
+    addCard("光澤", metrics.glow, "光澤與光線很相關：自然光、避免直射反光更準。");
+    addCard("油水平衡", metrics.oilBalance, "太油或太乾都會影響均勻度與瑕疵，建議觀察 T 字/兩頰差異。");
+
+    // =========================================================
+    // ✅ 8) 風險提醒
+    // =========================================================
+    const riskList = document.getElementById("riskList");
+    const risks = [];
+    if(metrics.complexion < 60) risks.push("氣色偏低：先確認光線 + 睡眠狀態（此為參考，不代表健康診斷）。");
+    if(metrics.blemish < 55) risks.push("瑕疵指標偏低：建議先從清潔、保濕與防曬一致性開始。");
+    if(metrics.oilBalance < 55) risks.push("油水平衡偏低：可能過乾/過油，建議簡化保養並觀察 3–7 天。");
+    if(risks.length === 0) risks.push("沒有明顯風險指標，維持目前作息與防曬習慣即可。");
+
+    riskList.innerHTML = "";
+    risks.forEach(t=>{
+      const div = document.createElement("div");
+      div.className = "item";
+      div.textContent = t;
+      riskList.appendChild(div);
+    });
+
+    // =========================================================
+    // ✅ 9) Step 切換（同頁切換）
+    // =========================================================
+    function switchStep(outId, inId){
+      const outE = document.getElementById(outId);
+      const inE = document.getElementById(inId);
+      if(!outE || !inE) return;
+
+      outE.classList.remove("visible");
+      setTimeout(() => {
+        inE.classList.add("visible");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 120);
+    }
+
+    // =========================================================
+    // ✅ 10) Tips（永遠有內容 + 會依指標連動）
+    // =========================================================
+    const tipsList = document.getElementById("tipsList");
+
+    function uniqPush(arr, txt){
+      if(!txt) return;
+      if(!arr.includes(txt)) arr.push(txt);
+    }
+
+    const tipsBase = Array.isArray(payload.tips) && payload.tips.length
+      ? payload.tips.filter(Boolean)
+      : [];
+
+    const tips = tipsBase.slice();
+
+    if(metrics.complexion < 60){
+      uniqPush(tips, "氣色偏低：自然光側光重拍，並把睡眠拉回（提早 30–60 分鐘上床最有效）。");
+      uniqPush(tips, "早餐補水＋蛋白質（豆漿/蛋/優格）能讓氣色更穩。");
+    }
+    if(metrics.blemish < 55){
+      uniqPush(tips, "瑕疵偏低：清潔改溫和，洗面 40–60 秒，避免用力摩擦。");
+      uniqPush(tips, "粉刺/痘痘多：先穩定保濕＋防曬，再逐步加入功能型產品。");
+    }
+    if(metrics.oilBalance < 55){
+      uniqPush(tips, "油水平衡偏低：先簡化保養 3–7 天觀察（越簡單越穩）。");
+      uniqPush(tips, "白天用吸油面紙輕壓即可，別過度控油。");
+    }
+    if(metrics.glow < 60){
+      uniqPush(tips, "光澤偏低：避免背光與頂光，用窗邊自然側光，距離 30–40cm。");
+      uniqPush(tips, "保養先把保濕層做好（化妝水/精華）再加鎖水乳。");
+    }
+    if(metrics.evenness < 60){
+      uniqPush(tips, "均勻度偏低：防曬要穩定，並減少摩擦（洗臉/擦拭要溫柔）。");
+      uniqPush(tips, "固定同一時間連拍 3 天再看趨勢，單次波動很常見。");
+    }
+
+    const tipFallback = [
+      "固定同一時間、同一光線拍 3 天，趨勢比單次更可信。",
+      "保養順序先穩：清潔 → 保濕 → 防曬；功能型產品等穩定後再加。",
+      "拍攝時避免濾鏡、美肌、誇張補光，否則指標會被干擾。",
+      "室內偏黃光會拉低氣色與均勻度，盡量靠窗自然光。",
+      "今天狀態差別急著下結論：用 7 天平均值更準。"
+    ];
+    for(const t of tipFallback){
+      if(tips.length >= 6) break;
+      uniqPush(tips, t);
+    }
+
+    // ✅ 顯示 Tips（總覽 + 詳細）
+    document.getElementById("tipsCount").textContent = `${tips.length} 條`;
+
+    function renderTips(container, list){
+      container.innerHTML = "";
+      list.forEach((t, idx)=>{
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<span class="badge">#${idx+1}</span> ${t}`;
+        container.appendChild(div);
+      });
+    }
+    renderTips(tipsList, tips.slice(0, 4)); // ✅ 總覽先顯示前 4 條
+
+    // =========================================================
+    // ✅ 11) 商品推薦（100 假資料 + 橫向無限滑）
+    // =========================================================
+    const productList = document.getElementById("productList");
+    const productListDetail = document.getElementById("productListDetail");
+
+    function buildFakeProducts(total = 100){
+      const tags = ["保濕","打底","光澤","均勻度","油水平衡","瑕疵改善","修護","防曬","舒緩","急救"];
+      const descs = [
+        "適合日常維穩，先把底盤顧好。",
+        "針對弱項加強，建議連續使用 7 天觀察趨勢。",
+        "溫和路線，降低刺激、讓膚況更穩。",
+        "加強補水與修護，光澤通常會一起提升。",
+        "搭配防曬更有效，均勻度提升更明顯。"
+      ];
+      return Array.from({ length: total }, (_, i) => {
+        const tag = tags[i % tags.length];
+        const desc = descs[i % descs.length];
+        return {
+          name: `測試商品 ${String(i + 1).padStart(3, "0")}`,
+          desc,
+          tag,
+          url: "#",
+          image: "assets/background.jpg"
+        };
+      });
+    }
+
+    const backendProducts = Array.isArray(payload.products) ? payload.products.filter(Boolean) : [];
+    const TARGET = 100;
+
+    const ALL_PRODUCTS =
+      backendProducts.length >= TARGET
+        ? backendProducts.slice(0, TARGET)
+        : backendProducts.concat(buildFakeProducts(TARGET - backendProducts.length));
+
+    // const ALL_PRODUCTS =
+    //   (Array.isArray(payload.products) && payload.products.length)
+    //     ? payload.products
+    //     : buildFakeProducts(100);
+
+    let page = 0;
+    const PAGE_SIZE = 8;
+    let loading = false;
+    let pageDetail = 0;
+    const PAGE_SIZE_DETAIL = 8;
+    let loadingDetail = false;
+
+    function createProductCard(p){
+      const div = document.createElement("div");
+      div.className = "item productCard fade-in";
+      div.dataset.kind = "product";
+      const imgUrl = p.image || p.img || p.photo || "assets/background.jpg";
+      div.innerHTML = `
+        <img class="productImg" src="${imgUrl}" alt="${p.name || "商品"}" />
+        <div class="productBody">
+          <div class="productTitle">${p.name || "推薦項目"}</div>
+          <div class="mutedText">${p.desc || "建議方向：依你的指標弱項優先補強。"}</div>
+          <div class="productMeta">
+            <span class="badge">${p.tag || "建議"}</span>
+            <a class="productCta" href="${p.url || "#"}" target="_blank" rel="noopener">查看</a>
+          </div>
+        </div>
+      `;
+      return div;
+    }
+
+    function updateProductCount(){
+      const cards = productList.querySelectorAll('[data-kind="product"]');
+      document.getElementById("productCount").textContent = `${cards.length} 項`;
+    }
+    function updateProductCount2(){
+      if(!productListDetail) return;
+      const cards = productListDetail.querySelectorAll('[data-kind="product"]');
+      const productCount2 = document.getElementById("productCount2");
+      if (productCount2) productCount2.textContent = `${cards.length} 項`;
+    }
+
+    function loadMoreX(){
+      if(loading) return;
+      loading = true;
+
+      const start = page * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+      const slice = ALL_PRODUCTS.slice(start, end);
+
+      if(slice.length === 0){
+        sentinelXText.textContent = "已經到底了";
+        loading = false;
+        return;
+      }
+
+      slice.forEach(p => {
+        const card = createProductCard(p);
+        productList.insertBefore(card, sentinelX);
+      });
+
+      page++;
+      updateProductCount();
+      loading = false;
+    }
+
+    function loadMoreDetail(){
+      if(!productListDetail || loadingDetail) return;
+      loadingDetail = true;
+
+      const start = pageDetail * PAGE_SIZE_DETAIL;
+      const end = start + PAGE_SIZE_DETAIL;
+      const slice = ALL_PRODUCTS.slice(start, end);
+
+      if(slice.length === 0){
+        sentinelDetailText.textContent = "已經到底了";
+        loadingDetail = false;
+        return;
+      }
+
+      slice.forEach(p => {
+        const card = createProductCard(p);
+        productListDetail.insertBefore(card, sentinelDetail);
+      });
+
+      pageDetail++;
+      updateProductCount2();
+      loadingDetail = false;
+    }
+
+    // sentinel（在最右邊）
+    const sentinelX = document.createElement("div");
+    sentinelX.id = "productSentinelX";
+    const sentinelXText = document.createElement("div");
+    sentinelXText.textContent = "往右滑載入更多 →";
+    sentinelX.appendChild(sentinelXText);
+
+    const sentinelDetail = document.createElement("div");
+    sentinelDetail.id = "productSentinelDetail";
+    const sentinelDetailText = document.createElement("div");
+    sentinelDetailText.textContent = "往右滑載入更多 →";
+    sentinelDetail.appendChild(sentinelDetailText);
+
+    // 初始化商品列
+    productList.innerHTML = "";
+    productList.appendChild(sentinelX);
+    page = 0;
+    loadMoreX();
+
+    // 商品推薦內頁（同外頁樣式 + 橫向滑動）
+    if (productListDetail) {
+      productListDetail.innerHTML = "";
+      productListDetail.appendChild(sentinelDetail);
+      pageDetail = 0;
+      loadMoreDetail();
+    }
+
+
+    // IntersectionObserver：root 設為橫向容器 productList
+    const ioX = new IntersectionObserver((entries) => {
+      const e = entries[0];
+      if(e.isIntersecting){
+        loadMoreX();
+      }
+    }, {
+      root: productList,
+      rootMargin: "0px 420px 0px 0px",
+      threshold: 0
+    });
+
+    ioX.observe(sentinelX);
+
+    if (productListDetail) {
+      const ioDetail = new IntersectionObserver((entries) => {
+        const e = entries[0];
+        if(e.isIntersecting){
+          loadMoreDetail();
+        }
+      }, {
+        root: productListDetail,
+        rootMargin: "0px 420px 0px 0px",
+        threshold: 0
+      });
+
+      ioDetail.observe(sentinelDetail);
+    }
+  </script>
+</body>
+<script src="assets/app.js"></script>
+</html>
