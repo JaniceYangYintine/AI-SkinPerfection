@@ -88,7 +88,7 @@ graph TB
 
 ---
 
-## Data Engineering & Recommendation Pipeline
+## ETL & Recommendation Pipeline
 
 ```mermaid
 graph LR
