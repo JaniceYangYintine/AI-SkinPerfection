@@ -18,7 +18,7 @@
 ---
 # AI SkinPerfection
 
-## System Architecture
+## 系統架構圖
 
 ```mermaid
 graph TB
@@ -78,17 +78,21 @@ graph TB
     GCS_SYS --> LIFF_WEB
 ```
 
-## Key Components
+## 核心組件
 
-- ETL pipeline for ingredient normalization
-- YOLO-based skin condition detection
-- Gemini LLM analysis
-- Cloud SQL recommendation service
-- GA4 user behavior tracking
+- 用於成分標準化處理的 ETL 資料管線（ETL Pipeline）
+
+- 基於 YOLO 模型的皮膚問題辨識
+
+- 使用 Gemini 大型語言模型（LLM）進行分析與解釋
+
+- 基於 Cloud SQL 的推薦系統資料服務
+
+- 使用 GA4 進行使用者行為追蹤與分析
 
 ---
 
-## ETL & Recommendation Pipeline
+## ETL與推薦系統資料管線
 
 ```mermaid
 graph LR
