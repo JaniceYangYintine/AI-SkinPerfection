@@ -1,6 +1,6 @@
 # AI SkinPerfection Database Schema
 
-本文件說明 AI SkinPerfection 系統的資料庫設計，包含靜態資料表與動態資料表。
+本文件說明 AI SkinPerfection 系統的 MySQL資料庫設計，包含靜態資料表與動態資料表。
 
 ---
 
