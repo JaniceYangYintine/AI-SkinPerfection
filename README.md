@@ -19,8 +19,6 @@
 
 # AI SkinPerfection
 
-## System Architecture
-
 # AI SkinPerfection
 
 ## System Architecture
@@ -43,44 +41,44 @@ graph TB
     end
 
     subgraph AI["AI 服務層"]
-        YOLO_SKIN[YOLO 皮膚問題辨識]
-        GEMINI[Gemini LLM 分析]
+        YOLO_SKIN[YOLO Skin Detection]
+        GEMINI[Gemini LLM Analysis]
         RECO[Recommendation Logic]
     end
 
     subgraph DATAFLOW["資料處理與 ETL 層"]
         ETL[ETL Pipeline]
-        CLEAN[資料清洗與標準化]
-        TAG[成分標籤映射]
+        CLEAN[Data Cleaning]
+        TAG[Ingredient Tag Mapping]
     end
 
-    subgraph STORAGE["雲端資料與媒體儲存層"]
+    subgraph STORAGE["雲端資料儲存"]
         DB[(Cloud SQL)]
         GCS_SYS[Cloud Storage]
     end
 
     U <-->|LIFF SDK| LIFF_WEB
-    U <-->|聊天 / 推播| LINEAPI
+    U <-->|Chat / Push| LINEAPI
     LINEAPI <-->|Messaging API| N8N
 
     LIFF_WEB -->|HTTPS Webhook| API
     API --> N8N
-    LIFF_WEB -.->|GA4 Event / JS| GA4
+    LIFF_WEB -.->|GA4 Event| GA4
 
-    N8N -->|呼叫影像分析| YOLO_SKIN
-    N8N -->|呼叫文字分析| GEMINI
-    N8N -->|觸發推薦邏輯| RECO
+    N8N --> YOLO_SKIN
+    N8N --> GEMINI
+    N8N --> RECO
 
-    YOLO_SKIN -->|分析結果輸出| GCS_SYS
-    GEMINI -->|結構化分析結果| DB
-    RECO <-->|查詢產品 / 成分 / 推薦資料| DB
+    YOLO_SKIN --> GCS_SYS
+    GEMINI --> DB
+    RECO --> DB
 
     ETL --> CLEAN
     CLEAN --> TAG
     TAG --> DB
 
-    DB -->|產品 / 成分 / Session 資料| RECO
-    GCS_SYS -->|圖片資源| LIFF_WEB
+    DB --> RECO
+    GCS_SYS --> LIFF_WEB
 
 ## Key Components
 - ETL pipeline for ingredient normalization
