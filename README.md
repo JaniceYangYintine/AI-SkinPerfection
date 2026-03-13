@@ -22,6 +22,7 @@
 # AI SkinPerfection
 
 ## System Architecture
+## System Architecture
 
 ```mermaid
 graph TB
@@ -98,9 +99,7 @@ graph TB
     DB -->|"產品資料 / 成分資料 / session 資料"| RECO
     GCS -->|"圖片資源 / 分析圖檔"| LIFF
 
-## ETL & Recommendation Pipeline
-
-```mermaid
+## Data Engineering Pipeline
 graph LR
     subgraph INPUT["資料輸入來源"]
         CRAWLER[品牌爬蟲 / 外部資料]
@@ -165,7 +164,12 @@ graph LR
     style YOLO fill:#fce4ec,stroke:#333,stroke-width:1.5px
     style LLM fill:#f3e5f5,stroke:#333,stroke-width:1.5px
     style RANKING fill:#fff8e1,stroke:#333,stroke-width:2px
-```
+## Key Components
+- ETL pipeline for ingredient normalization
+- YOLO-based skin condition detection
+- Gemini LLM analysis
+- Cloud SQL recommendation service
+- GA4 user behavior tracking
 
 ## Key Components
 - ETL pipeline for ingredient normalization
